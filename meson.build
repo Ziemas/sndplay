@@ -1,9 +1,9 @@
 project('musplay', 'cpp')
 
-fmt = dependency('fmt')
+sdl = dependency('SDL2')
 
 sources = files([
     'src/musplay.cpp',
 ])
 
-executable('musplay', sources, dependencies : fmt)
+executable('musplay', sources, dependencies : sdl)
