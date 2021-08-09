@@ -32,7 +32,7 @@ int loadBank(char *filename) {
         size += 4;
     }
 
-    SoundBank *soundBank = (SoundBank *)malloc(size);
+    auto *soundBank = (SoundBank *)malloc(size);
     if (soundBank == nullptr) {
         printf("malloc failed\n");
         return -1;
