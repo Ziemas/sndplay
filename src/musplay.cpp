@@ -5,9 +5,15 @@
 
 std::vector<SoundBank> gBanks;
 
-int loadSongs() { return 0; }
+int
+loadSongs()
+{
+    return 0;
+}
 
-void SoundBank::Load(sbv2Struct *bank) {
+void
+SoundBank::Load(sbv2Struct *bank)
+{
     sbParams = *bank;
 
     auto instr = (Instrument *)((u8 *)bank + bank->instrumentOffset);
@@ -24,7 +30,9 @@ void SoundBank::Load(sbv2Struct *bank) {
     }
 }
 
-int loadBank(char *filename) {
+static int
+loadBank(char *filename)
+{
     std::fstream file;
     file.open(filename, std::fstream::binary | std::fstream::in);
     file.seekg(0, std::fstream::beg);
@@ -39,7 +47,8 @@ int loadBank(char *filename) {
 
     // idk if this is what is signified by this at all...
     if (header.Type != FileType::SBv2 && header.Type != FileType::SBlk) {
-        printf("%s: Unsupported type: %d\n", filename, (int)header.Type);
+        printf(
+            "%s: Unsupported type: %d\n", filename, (int)header.Type);
         return -1;
     }
 
@@ -59,8 +68,8 @@ int loadBank(char *filename) {
     // and then never use the base ptr for anything again.
     /*
     u32 *dst = bankBuf;
-     if (header.subVer == 3)
-        dst = bankBuf + 1;
+    if (header.subVer == 3)
+    dst = bankBuf + 1;
     file.read((char *)dst, size);
     */
 
@@ -96,15 +105,17 @@ int loadBank(char *filename) {
     return 0;
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[])
+{
     if (argc > 1)
         loadBank(argv[1]);
 
     for (auto b : gBanks) {
         printf("fourcc: %.*s\n", 4, (char *)&b.sbParams.fourcc);
         printf("bank: %.*s\n", 4, (char *)&b.sbParams.name);
-        //printf("instruments:\n");
-        //for (auto i : b.instruments) {
+        // printf("instruments:\n");
+        // for (auto i : b.instruments) {
         //    printf("regions: %x\n", i.nRegion);
         //    printf("vol?: %x\n", i.volume);
         //    printf("unk: %x\n", i.something);
