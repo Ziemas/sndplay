@@ -1,5 +1,7 @@
 #include "musplay.h"
+#include <cassert>
 #include <cstdio>
+#include <fmt/format.h>
 #include <iterator>
 #include <memory>
 
@@ -38,7 +40,7 @@ loadBank(char *filename)
     file.seekg(0, std::fstream::beg);
 
     if (!file.is_open()) {
-        printf("Failed to open file\n");
+        fmt::print("Failed to open file\n");
         return -1;
     }
 
@@ -47,8 +49,7 @@ loadBank(char *filename)
 
     // idk if this is what is signified by this at all...
     if (header.Type != FileType::SBv2 && header.Type != FileType::SBlk) {
-        printf(
-            "%s: Unsupported type: %d\n", filename, (int)header.Type);
+        fmt::print("{}: Unsupported type: {}\n", filename, (int)header.Type);
         return -1;
     }
 
@@ -60,7 +61,7 @@ loadBank(char *filename)
 
     auto *soundBank = (sbv2Struct *)malloc(size);
     if (soundBank == nullptr) {
-        printf("malloc failed\n");
+        fmt::print("malloc failed\n");
         return -1;
     }
 
@@ -81,14 +82,14 @@ loadBank(char *filename)
     gBanks.push_back(sb);
 
     if (header.sampleSize == 0) {
-        printf("%s: bank size %d\n", filename, header.sampleSize);
-        printf("unhandled!\n");
+        fmt::print("{}: bank size {}\n", filename, header.sampleSize);
+        fmt::print("unhandled!\n");
         return 0;
     }
 
     u8 *sampleBuf = (u8 *)malloc(header.sampleSize);
     if (soundBank == nullptr) {
-        printf("sample malloc failed\n");
+        fmt::print("sample malloc failed\n");
         return -1;
     }
 
@@ -112,10 +113,9 @@ main(int argc, char *argv[])
         loadBank(argv[1]);
 
     for (auto b : gBanks) {
-        printf("fourcc: %.*s\n", 4, (char *)&b.sbParams.fourcc);
-        printf("bank: %.*s\n", 4, (char *)&b.sbParams.name);
-        // printf("instruments:\n");
-        // for (auto i : b.instruments) {
+        assert(b.sbParams.fourcc == FOURCC('S', 'B', 'v', '2'));
+        //printf("instruments:\n");
+        //for (auto i : b.instruments) {
         //    printf("regions: %x\n", i.nRegion);
         //    printf("vol?: %x\n", i.volume);
         //    printf("unk: %x\n", i.something);

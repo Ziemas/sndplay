@@ -8,7 +8,7 @@
 // Big thanks to rerwarwar for struct definitions
 
 #define FOURCC(a, b, c, d) \
-    ((uint32)(((d) << 24) | ((c) << 16) | ((b) << 8) | (a)))
+    ((u32)(((d) << 24) | ((c) << 16) | ((b) << 8) | (a)))
 
 enum class BankFlags : u32 {
     SB_PTRS_REWRITTEN = 0x1,
@@ -51,7 +51,19 @@ struct sbHeader {
     /* 0x14 */ u32 sampleSize;  // size of sound bank
     /* 0x18 */ u32 seqOffset;   // pointer to sequenced music data
     /* 0x1C */ u32 unused;
-} __attribute__((packed));
+
+    void Load(BinReader &r)
+    {
+        r.Read(&Type);
+        r.Read(&version);
+        r.Read(&bankOffset);
+        r.Read(&sbSize);
+        r.Read(&sampleOffset);
+        r.Read(&sampleSize);
+        r.Read(&seqOffset);
+        r.Read(&unused);
+    }
+};
 
 struct sbv2Struct {
     /* 0x0  */ u32 fourcc;   // "SBv2"
@@ -70,7 +82,27 @@ struct sbv2Struct {
     /* 0x2C */ u32 sampleSize;        // same as in file header
     /* 0x30 */ u32 nextBank;          // ptr written here
     /* 0x34 */ u32 unk2;
-} __attribute__((packed));
+
+    void Load(BinReader &r)
+    {
+        r.Read(&fourcc);
+        r.Read(&version);
+        r.Read(&unkFlags);
+        r.Read(&name);
+        r.Read(&unk);
+        r.Read(&songCount);
+        r.Read(&instrumentCount);
+        r.Read(&regionCount);
+        r.Read(&sampleCount);
+        r.Read(&songOffset);
+        r.Read(&instrumentOffset);
+        r.Read(&regionOffset);
+        r.Read(&spuRamLoc);
+        r.Read(&sampleSize);
+        r.Read(&nextBank);
+        r.Read(&unk2);
+    }
+};
 
 struct Song {
     /* 0x0  */ u32 unk;
@@ -82,7 +114,7 @@ struct Song {
     /* 0x16 */ u8 midiIdx;
     /* 0x17 */ u8 unk3;
     /* 0x18 */ int midiPtr;  // gets put here
-} __attribute__((packed));
+};
 
 struct Instrument {
     u8 nRegion;     // usually 1
