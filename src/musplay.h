@@ -20,26 +20,6 @@ enum class FileType : u32 {
     SBlk = 3,
 };
 
-class BinReader
-{
-  public:
-    BinReader(std::fstream &buf) : m_buf(buf){};
-
-    template <typename T>
-    void Read(T *ptr)
-    {
-        m_buf.read((char *)ptr, sizeof(T));
-    }
-
-    void seek(u32 pos)
-    {
-        m_buf.seekg(pos, std::fstream::beg);
-    }
-
-  private:
-    std::fstream &m_buf;
-};
-
 // SBlk files have their sbHeader at 0x800 into the file
 
 struct sbHeader {
@@ -51,18 +31,6 @@ struct sbHeader {
     /* 0x14 */ u32 sampleSize;  // size of sound bank
     /* 0x18 */ u32 seqOffset;   // pointer to sequenced music data
     /* 0x1C */ u32 unused;
-
-    void Load(BinReader &r)
-    {
-        r.Read(&Type);
-        r.Read(&version);
-        r.Read(&bankOffset);
-        r.Read(&sbSize);
-        r.Read(&sampleOffset);
-        r.Read(&sampleSize);
-        r.Read(&seqOffset);
-        r.Read(&unused);
-    }
 };
 
 struct sbv2Struct {
@@ -82,26 +50,6 @@ struct sbv2Struct {
     /* 0x2C */ u32 sampleSize;        // same as in file header
     /* 0x30 */ u32 nextBank;          // ptr written here
     /* 0x34 */ u32 unk2;
-
-    void Load(BinReader &r)
-    {
-        r.Read(&fourcc);
-        r.Read(&version);
-        r.Read(&unkFlags);
-        r.Read(&name);
-        r.Read(&unk);
-        r.Read(&songCount);
-        r.Read(&instrumentCount);
-        r.Read(&regionCount);
-        r.Read(&sampleCount);
-        r.Read(&songOffset);
-        r.Read(&instrumentOffset);
-        r.Read(&regionOffset);
-        r.Read(&spuRamLoc);
-        r.Read(&sampleSize);
-        r.Read(&nextBank);
-        r.Read(&unk2);
-    }
 };
 
 struct Song {
