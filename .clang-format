@@ -1,9 +1,0 @@
-BasedOnStyle: LLVM
-IndentWidth: 4
-BreakBeforeBraces: Linux
-AllowShortIfStatementsOnASingleLine: false
-IndentCaseLabels: false
-ColumnLimit: 0
-AlignTrailingComments: true
-SpacesBeforeTrailingComments: 2
-AlwaysBreakAfterReturnType: TopLevelDefinitions
