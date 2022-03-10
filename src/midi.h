@@ -11,6 +11,13 @@ public:
     void play();
 
 private:
+    struct unknown_event : public std::exception {
+        const char* what() const throw() override
+        {
+            return "Unknown MIDI event";
+        }
+    };
+
     u8* m_seq_data_start { nullptr };
     u8* m_seq_ptr { nullptr };
     u8 m_status { 0 };
@@ -21,16 +28,11 @@ private:
 
     void note_on();
     void note_off();
+    void channel_pressure();
     void program_change();
     void meta_event();
     void system_event();
+    void channel_pitch();
 
     static std::pair<size_t, u32> read_vlq(u8* value);
-};
-
-struct unknown_event : public std::exception {
-    const char* what() const throw() override
-    {
-        return "Unknown MIDI event";
-    }
 };

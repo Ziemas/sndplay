@@ -32,7 +32,7 @@
 */
 
 // clang-format off
-static u8 sunken_seq[100] =
+[[maybe_unused]] static u8 sunken_seq[100] =
 {
     0x00, // delta
     0xc0, 0x00, // program change
@@ -89,7 +89,7 @@ static u8 sunken_seq[100] =
 // player 0x001EC344
 // sequence data at 0x001EC3F9
 // clang-format off
-static u8 testSeq[56] = {
+[[maybe_unused]] static u8 testSeq[56] = {
     0x00, // delta
     0xf0, 0x75, // invoke next level of parsing?
         0x0f, // 0f event
@@ -116,6 +116,7 @@ std::pair<size_t, u32> midi_player::read_vlq(u8* value)
 {
     size_t len = 1;
     u32 out = *value & 0x7f;
+    // fmt::print("starting with {:x}\n", *value);
 
     if ((*value & 0x80) != 0) {
         while ((*value & 0x80) != 0) {
@@ -130,31 +131,45 @@ std::pair<size_t, u32> midi_player::read_vlq(u8* value)
 
 void midi_player::note_on()
 {
-    fmt::print("note on {:x}\n", *m_seq_ptr);
+    fmt::print("{} note on {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
     m_seq_ptr += 2;
 }
 
 void midi_player::note_off()
 {
-    fmt::print("note off {:x}\n", *m_seq_ptr);
+    fmt::print("{} note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
     m_seq_ptr += 2;
 }
 
 void midi_player::program_change()
 {
-    fmt::print("program change {:x}\n", *m_seq_ptr);
+    fmt::print("{} program change {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+    m_seq_ptr += 2;
+}
+
+void midi_player::channel_pressure()
+{
+    fmt::print("{} channel pressure {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0]);
+    m_seq_ptr += 1;
+}
+
+void midi_player::channel_pitch()
+{
+    u8 channel = m_status & 0xF;
+    u32 pitch = (m_seq_ptr[0] << 7) | m_seq_ptr[1];
+    fmt::print("{}: pitch ch{:01x} {:04x}\n", m_time, channel, pitch);
     m_seq_ptr += 2;
 }
 
 void midi_player::meta_event()
 {
-    fmt::print("meta event\n");
+    fmt::print("{}: meta event {:02x}\n", m_time, *m_seq_ptr);
     size_t len = m_seq_ptr[2];
 
     if (*m_seq_ptr == 0x2f) {
         fmt::print("End of track!\n");
         // loop point
-        //m_seq_ptr = m_seq_data_start;
+        // m_seq_ptr = m_seq_data_start;
 
         m_track_complete = true;
         return;
@@ -170,13 +185,14 @@ void midi_player::meta_event()
 
 void midi_player::system_event()
 {
-    fmt::print("system event {:x}\n", *m_seq_ptr);
+    fmt::print("{}: system event {:02x}\n", m_time, *m_seq_ptr);
 
     switch (*m_seq_ptr) {
     case 0x75:
         while (*m_seq_ptr != 0xf7) {
             m_seq_ptr++;
         }
+        m_seq_ptr++;
         break;
     default:
         throw unknown_event();
@@ -185,8 +201,6 @@ void midi_player::system_event()
 
 void midi_player::play()
 {
-    u8 event;
-
     while (!m_track_complete) {
         auto [len, delta] = read_vlq(m_seq_ptr);
         //fmt::print("delta: {} with len {}\n", delta, len);
@@ -207,8 +221,14 @@ void midi_player::play()
             case 0x9:
                 note_on();
                 break;
+            case 0xD:
+                channel_pressure();
+                break;
             case 0xC:
                 program_change();
+                break;
+            case 0xE:
+                channel_pitch();
                 break;
             case 0xF:
                 // normal meta-event
@@ -225,7 +245,7 @@ void midi_player::play()
                 return;
             }
         } catch (unknown_event& e) {
-            fmt::print("No handler for unknown event {:x}\n", event);
+            fmt::print("No handler for unknown event {:x}\n", m_status);
             for (int i = 0; i < 10; i++) {
                 fmt::print("{:x} ", m_seq_ptr[i]);
             }

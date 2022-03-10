@@ -21,11 +21,16 @@ void soundbank::load_seq()
 
     if (midi->mmid.fourcc == FOURCC('M', 'M', 'I', 'D')) {
         fmt::print("multitrack\n");
-        for (int i = 0; i < midi->mmid.nTrack; i++) {
-            fmt::print("offset {}: {}\n", i, midi->mmid.MID[i]);
-            MID* m = (MID*)(seqBuf.get() + midi->mmid.MID[i]);
-            fmt::print("fourcc {:.4}\n", (char*)m);
-        }
+        // for (int i = 2; i < midi->mmid.nTrack; i++) {
+        //     fmt::print("offset {}: {}\n", i, midi->mmid.MID[i]);
+        //     MID* m = (MID*)(seqBuf.get() + midi->mmid.MID[i]);
+        //     fmt::print("fourcc {:.4}\n", (char*)m);
+
+        //}
+
+        MID* m = (MID*)(seqBuf.get() + midi->mmid.MID[1]);
+        midi_player player((u8*)m + m->offset);
+        player.play();
     }
 
     if (midi->mid.fourcc == FOURCC('M', 'I', 'D', ' ')) {
@@ -152,8 +157,8 @@ int main(int argc, char* argv[])
         load_bank(argv[1]);
 
     for (auto& b : gBanks) {
-        //fmt::print("Bank {:.4}\n", (char*)&b.data.name);
-        //fmt::print("Read {} instruments, {} song(s)\n", b.instruments.size(), b.songs.size());
+        // fmt::print("Bank {:.4}\n", (char*)&b.data.name);
+        // fmt::print("Read {} instruments, {} song(s)\n", b.instruments.size(), b.songs.size());
 
         // fmt::print("instruments:\n");
         // for (auto &i : b.instruments) {
@@ -169,14 +174,14 @@ int main(int argc, char* argv[])
         //     fmt::print("----:\n");
         // }
 
-        //fmt::print("Songs:\n");
-        //for (auto& s : b.songs) {
-        //    fmt::print("type {}\n", s.type);
-        //    fmt::print("bank {:.4}\n", (char*)&s.bankName);
-        //    fmt::print("midi {:.4}\n", (char*)&s.midiName);
-        //    fmt::print("unk {:.4}\n", (char*)&s.unkName);
-        //    fmt::print("{}\n", s.midiIdx);
-        //}
+        // fmt::print("Songs:\n");
+        // for (auto& s : b.songs) {
+        //     fmt::print("type {}\n", s.type);
+        //     fmt::print("bank {:.4}\n", (char*)&s.bankName);
+        //     fmt::print("midi {:.4}\n", (char*)&s.midiName);
+        //     fmt::print("unk {:.4}\n", (char*)&s.unkName);
+        //     fmt::print("{}\n", s.midiIdx);
+        // }
     }
 
     return 0;
