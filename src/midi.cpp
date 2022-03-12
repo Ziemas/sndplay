@@ -32,70 +32,13 @@
 ** FF 51 XX XX XX
 **
 */
-
-// clang-format off
-[[maybe_unused]] static u8 sunken_seq[100] =
-{
-    0x00, // delta
-    0xc0, 0x00, // program change
-    0x00,
-    0xc1, 0x01,
-    0x00,
-    0xc2, 0x02,
-    0x00,
-    0xc3, 0x03,
-    0x00,
-    0xc4, 0x04,
-    0x00,
-    0xc5, 0x05,
-    0x00,
-    0xc6, 0x06,
-    0x00,
-    0xc7, 0x07,
-    0x00,
-    0xc8, 0x08,
-    0x00,
-    0xc9, 0x09,
-    0x00,
-    0xca, 0x0a,
-    0x00,
-    0xcb, 0x0b,
-    0x00,
-    0xcc, 0x0c,
-    0x00,
-    0xff, 0x51, 0x03, 0x07, 0xa1, 0x20,
-    0x00,
-    0x96, 0x2d, 0x65,
-    0x00,
-    0x9c, 0x24, 0x64,
-    0x01,
-    0x90, 0x35, 0x5d,
-    0x00,
-    0x94, 0x39, 0x5e,
-    0x81, 0x42, // first multibyte delta
-    0x9c, 0x24, 0x00, //
-    0x0d,
-    0x96, 0x2d, 0x00,
-
-    0x84, 0x00, 0x2d, 0x65, 0x00,
-
-    0x9c, 0x24, 0x64, 0x81,
-    0x39, 0x96, 0x2d, 0x00,
-    0x0c, 0x9c, 0x24, 0x00,
-    0x25, 0x90, 0x35, 0x00,
-    0x06, 0x91, 0x3e, 0x6f,
-    0x81, 0x78, 0x94, 0x39
-};
-// clang-format on
-
 // player 0x001EC344
 // sequence data at 0x001EC3F9
 // clang-format off
 [[maybe_unused]] static u8 testSeq[56] = {
-    0x00, // delta
-    0xf0, 0x75, // invoke next level of parsing?
-        0x0f, // 0f event
-        // reads this chunk of data, into an unknown struct
+    0x00, // midi delta
+    0xf0, 0x75, // sysex 0x75, AME function
+        0x0f, // read group data
         0x00, 0x01, 0x00, 0x01,
         0x01, 0x01, 0x01, 0x01,
         0x02, 0x01, 0x01, 0x03,
@@ -106,11 +49,14 @@
         0x04, 0x09, 0x04, 0x04,
         0x0a, 0x04, 0x04, 0x0b,
         0x04, 0x04, 0x0c, 0x04,
-        0x04, 0xf7,
+        0x04,
+        0xf7, // end marker
 
-    0x13, 0x00,
-    0x00, 0x12, 0x02, 0x11,
-    0x01, 0xf7, 0x00, 0x00
+    0x13, 0x00, 0x00, // if (flag) register[0] = 0
+    0x12, 0x02, // if (flag) start segment 2
+    0x11, 0x01, // if (flag) stop current segment & start segment 1
+
+    0xf7, 0x00, 0x00 // end
 };
 // clang-format on
 
@@ -214,10 +160,11 @@ void midi_player::play()
     step();
 }
 
-#define AME_OP(op, body, argc) \
-    case ame_op::op: {         \
-        { body } m_seq_ptr     \
-            += (argc);         \
+#define AME_OP(op, body, argc)              \
+    case ame_op::op: {                      \
+        fmt::print("ame_trace: {}\n", #op); \
+        { body } stream                     \
+            += (argc);                      \
     } break;
 
 #define AME_COND(x)      \
@@ -238,7 +185,7 @@ void midi_player::run_ame(u8* stream)
     int flag = 0;
 
     fmt::print("entered ame\n");
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 100; i++) {
         fmt::print("{:02x} ", m_seq_ptr[i]);
     }
     fmt::print("\n");
@@ -254,39 +201,39 @@ void midi_player::run_ame(u8* stream)
             AME_OP(comp_midireg_less, AME_CMP(m_register[stream[0]] < stream[1]), 2)
             AME_OP(store_macro, m_macro[*stream] = stream; for (; *stream != 0xf7; stream++);, 1)
             AME_OP(cond_run_macro, AME_COND(run_ame(m_macro[stream[0]])), 1)
-
+            AME_OP(cond_set_reg, AME_COND(m_register[stream[0]] = stream[1]), 2)
+            AME_OP(cond_start_segment, AME_COND(/*TODO*/), 1)
+            AME_OP(cond_stop_and_start, AME_COND(/*TODO*/), 1)
         case ame_op::read_group_data: { // read in new group data
             if (!flag) {
                 u8 group = *stream++;
-                fmt::print("group {:x}\n", group);
-                u8 basis = *stream++;
-                fmt::print("basis {:x}\n", basis);
+                m_groups[group].basis = *stream++;
                 u8 channel = 0;
                 while (*stream != 0xf7) {
-                    u8 channel_map = *stream++;
-                    fmt::print("channel map {:x}\n", channel_map);
-                    u8 excite_min = *stream++;
-                    fmt::print("excite min {:x}\n", excite_min);
-                    u8 excite_max = *stream++;
-                    fmt::print("excite max {:x}\n", excite_max);
+                    m_groups[group].channel[channel] = *stream++;
+                    m_groups[group].excite_min[channel] = *stream++;
+                    m_groups[group].excite_max[channel] = *stream++;
                     channel += 1;
                 }
-                stream++;
+                m_groups[group].num_channels = channel;
                 fmt::print("{} channels\n", channel);
+                stream++;
             } else {
+                for (; *stream != 0xf7; stream++)
+                    ;
                 flag = true;
             }
+            break;
         }
         default: {
-            throw midi_error(fmt::format("Unhandled AME event {:02x}", *stream));
+            throw midi_error(fmt::format("Unhandled AME event {:02x}", (u8)op));
         }
         }
 
-        if (*stream== 0xf7) {
+        if (*stream == 0xf7) {
             fmt::print("ame done\n");
             done = true;
         }
-        stream++;
     }
 
     m_seq_ptr = stream;

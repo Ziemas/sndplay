@@ -29,6 +29,15 @@ private:
         }
     };
 
+    struct GroupDescription {
+        /*   0 */ s8 num_channels;
+        /*   1 */ s8 basis;
+        /*   2 */ s8 pad[2];
+        /*   4 */ s8 channel[16];
+        /*  14 */ s8 excite_min[16];
+        /*  24 */ s8 excite_max[16];
+    };
+
     enum class ame_op : u8 {
         // Compares excite to next byte and puts result in the flag
         cmp_excite_less = 0x0,
@@ -48,6 +57,9 @@ private:
 
         cond_run_macro = 0xc,
         read_group_data = 0xf,
+        cond_stop_and_start = 0x11,
+        cond_start_segment = 0x12,
+        cond_set_reg = 0x13,
 
     };
 
@@ -62,6 +74,7 @@ private:
     bool m_track_complete { false };
 
     u8* m_macro[16];
+    GroupDescription m_groups[16];
 
     u8 m_register[16];
     u8 m_excite { 0 };
