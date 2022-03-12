@@ -15,12 +15,13 @@ int loadSongs()
 
 void soundbank::load_seq()
 {
-    auto midi = (MIDI*)seqBuf.get();
+    auto id = (u32*)seqBuf.get();
 
-    fmt::print("seq fourcc {:.4}\n", (char*)midi);
+    fmt::print("seq fourcc {:.4}\n", (char*)id);
 
-    if (midi->mmid.fourcc == FOURCC('M', 'M', 'I', 'D')) {
-        fmt::print("multitrack\n");
+    if (*id == FOURCC('M', 'M', 'I', 'D')) {
+        auto mmidi = (MultiMIDIBlockHeader*)id;
+
         // for (int i = 2; i < midi->mmid.nTrack; i++) {
         //     fmt::print("offset {}: {}\n", i, midi->mmid.MID[i]);
         //     MID* m = (MID*)(seqBuf.get() + midi->mmid.MID[i]);
@@ -28,43 +29,44 @@ void soundbank::load_seq()
 
         //}
 
-        MID* m = (MID*)(seqBuf.get() + midi->mmid.MID[1]);
-        midi_player player((u8*)m + m->offset);
+        auto midi = (MIDIBlockHeader*)(seqBuf.get() + mmidi->BlockPtr[0]);
+        midi_player player((u8*)((uintptr_t)midi + (uintptr_t)midi->DataStart), sampleBuf.get());
         player.play();
     }
 
-    if (midi->mid.fourcc == FOURCC('M', 'I', 'D', ' ')) {
-        fmt::print("single track mid\n");
+    if (*id == FOURCC('M', 'I', 'D', ' ')) {
+        auto midi = (MIDIBlockHeader*)id;
 
-        midi_player player((u8*)midi + midi->mid.offset);
+        midi_player player((u8*)((uintptr_t)midi + (uintptr_t)midi->DataStart), sampleBuf.get());
         player.play();
     }
 }
 
-void soundbank::load(sbv2Data* bank)
+/*
+** sound - song
+** prog - instrument
+** tone - region
+** vag - sample
+*/
+
+void soundbank::load(SoundBank* bank)
 {
     data = *bank;
+    assert(data.DataID == FOURCC('S', 'B', 'v', '2'));
 
-    assert(data.fourcc == FOURCC('S', 'B', 'v', '2'));
-
-    auto instD = (instrumentData*)((u8*)bank + bank->instrumentOffset);
-
-    for (int i = 0; i < bank->instrumentCount; i++) {
-        Instrument instrument;
-        instrument.data = instD[i];
-
-        auto region = (regionData*)((u8*)bank + instD[i].oRegion);
-
-        for (int j = 0; j < instD[i].nRegion; j++)
-            instrument.regions.push_back(region[j]);
-
-        instruments.push_back(instrument);
+    auto sound = (MIDISound*)((uintptr_t)bank + (uintptr_t)bank->FirstSound);
+    for (int i = 0; i < bank->NumSounds; i++) {
+        sounds.emplace_back(sound[i]);
     }
 
-    auto songD = (songData*)((u8*)bank + bank->songOffset);
+    auto tone = (Tone*)((uintptr_t)bank + (uintptr_t)bank->FirstTone);
+    for (int i = 0; i < bank->NumTones; i++) {
+        tones.emplace_back(tone[i]);
+    }
 
-    for (int i = 0; i < bank->songCount; i++) {
-        songs.push_back(songD[i]);
+    auto prog = (Prog*)((uintptr_t)bank + (uintptr_t)bank->FirstProg);
+    for (int i = 0; i < bank->NumProgs; i++) {
+        programs.emplace_back(prog[i]);
     }
 }
 
@@ -95,7 +97,7 @@ static int load_bank(char* filename)
         size += 4;
     }
 
-    auto* soundBank = (sbv2Data*)malloc(size);
+    auto* soundBank = (SoundBank*)malloc(size);
     if (soundBank == nullptr) {
         fmt::print("malloc failed\n");
         return -1;
@@ -156,33 +158,18 @@ int main(int argc, char* argv[])
     if (argc > 1)
         load_bank(argv[1]);
 
-    for (auto& b : gBanks) {
-        // fmt::print("Bank {:.4}\n", (char*)&b.data.name);
-        // fmt::print("Read {} instruments, {} song(s)\n", b.instruments.size(), b.songs.size());
+    // for (auto& b : gBanks) {
+    //     fmt::print("Bank {:.4}\n", (char*)&b.data.BankID);
 
-        // fmt::print("instruments:\n");
-        // for (auto &i : b.instruments) {
-        //     fmt::print("regions: {}\n", i.data.nRegion);
-        //     //for (auto &r : i.regions) {
-        //     //    fmt::print("keymap {:x}\n", r.keymap);
-        //     //    fmt::print("sample  {:x}\n", r.oSample);
-        //     //    fmt::print("marker {:x}\n", r.marker2);
-        //     //}
-        //     fmt::print("vol?: {:x}\n", i.data.volume);
-        //     fmt::print("unk: {}\n", i.data.something);
-        //     fmt::print("regionidx: {}\n", i.data.oRegion);
-        //     fmt::print("----:\n");
-        // }
-
-        // fmt::print("Songs:\n");
-        // for (auto& s : b.songs) {
-        //     fmt::print("type {}\n", s.type);
-        //     fmt::print("bank {:.4}\n", (char*)&s.bankName);
-        //     fmt::print("midi {:.4}\n", (char*)&s.midiName);
-        //     fmt::print("unk {:.4}\n", (char*)&s.unkName);
-        //     fmt::print("{}\n", s.midiIdx);
-        // }
-    }
+    //    fmt::print("Songs:\n");
+    //    for (auto& s : b.sounds) {
+    //        fmt::print("type {}\n", s.Type);
+    //        fmt::print("bank {:.4}\n", (char*)&s.Bank);
+    //        fmt::print("midi {:.4}\n", (char*)&s.MIDIID);
+    //        fmt::print("unk {:.4}\n", (char*)&s.OrigBank);
+    //        fmt::print("{}\n", s.Index);
+    //    }
+    //}
 
     return 0;
 }

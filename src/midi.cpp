@@ -9,6 +9,8 @@
 ** For files with multiple tracks it lives in-place before the sequence data
 ** where the file is loaded. For single track (like sunken) it lives separetely
 **
+** the sequencer ticks at 240hz
+**
 */
 
 /*
@@ -200,6 +202,11 @@ void midi_player::system_event()
 }
 
 void midi_player::play()
+{
+    step();
+}
+
+void midi_player::step()
 {
     while (!m_track_complete) {
         auto [len, delta] = read_vlq(m_seq_ptr);
