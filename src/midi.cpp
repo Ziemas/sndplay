@@ -191,13 +191,21 @@ void midi_player::system_event()
 
     switch (*m_seq_ptr) {
     case 0x75:
-        while (*m_seq_ptr != 0xf7) {
-            m_seq_ptr++;
-        }
         m_seq_ptr++;
+        run_ame(m_seq_ptr);
+        fmt::print("left ame\n");
+        for (int i = 0; i < 10; i++) {
+            fmt::print("{:x} ", m_seq_ptr[i]);
+        }
+        fmt::print("\n");
+
         break;
     default:
-        throw unknown_event();
+        throw midi_error(fmt::format("Unknown system message {:02x}", *m_seq_ptr));
+        // while (*m_seq_ptr != 0xf7) {
+        //     m_seq_ptr++;
+        // }
+        // m_seq_ptr++;
     }
 }
 
@@ -206,11 +214,89 @@ void midi_player::play()
     step();
 }
 
+#define AME_OP(op, body, argc) \
+    case ame_op::op: {         \
+        { body } m_seq_ptr     \
+            += (argc);         \
+    } break;
+
+#define AME_COND(x)      \
+    if (flag == 0) {     \
+        x;               \
+    } else {             \
+        if (flag == 1) { \
+            flag = 0;    \
+        }                \
+    }
+#define AME_CMP(x) AME_COND(if (x) { flag = 1; })
+
+void midi_player::run_ame(u8* stream)
+{
+    bool done = false;
+
+    // don't really understand this yet
+    int flag = 0;
+
+    fmt::print("entered ame\n");
+    for (int i = 0; i < 50; i++) {
+        fmt::print("{:02x} ", m_seq_ptr[i]);
+    }
+    fmt::print("\n");
+
+    while (!done) {
+        auto op = static_cast<ame_op>(*stream++);
+        switch (op) {
+            AME_OP(cmp_excite_less, AME_CMP(m_excite < stream[0]), 1)
+            AME_OP(cmp_excite_not_equal, AME_CMP(m_excite != stream[0]), 1)
+            AME_OP(cmp_excite_greater, AME_CMP(m_excite > stream[0]), 1)
+            AME_OP(cond_stop_stream, AME_COND(/* stop stream matching ident */), 1)
+            AME_OP(comp_midireg_greater, AME_CMP(m_register[stream[0]] > stream[1]), 2)
+            AME_OP(comp_midireg_less, AME_CMP(m_register[stream[0]] < stream[1]), 2)
+            AME_OP(store_macro, m_macro[*stream] = stream; for (; *stream != 0xf7; stream++);, 1)
+            AME_OP(cond_run_macro, AME_COND(run_ame(m_macro[stream[0]])), 1)
+
+        case ame_op::read_group_data: { // read in new group data
+            if (!flag) {
+                u8 group = *stream++;
+                fmt::print("group {:x}\n", group);
+                u8 basis = *stream++;
+                fmt::print("basis {:x}\n", basis);
+                u8 channel = 0;
+                while (*stream != 0xf7) {
+                    u8 channel_map = *stream++;
+                    fmt::print("channel map {:x}\n", channel_map);
+                    u8 excite_min = *stream++;
+                    fmt::print("excite min {:x}\n", excite_min);
+                    u8 excite_max = *stream++;
+                    fmt::print("excite max {:x}\n", excite_max);
+                    channel += 1;
+                }
+                stream++;
+                fmt::print("{} channels\n", channel);
+            } else {
+                flag = true;
+            }
+        }
+        default: {
+            throw midi_error(fmt::format("Unhandled AME event {:02x}", *stream));
+        }
+        }
+
+        if (*stream== 0xf7) {
+            fmt::print("ame done\n");
+            done = true;
+        }
+        stream++;
+    }
+
+    m_seq_ptr = stream;
+}
+
 void midi_player::step()
 {
     while (!m_track_complete) {
         auto [len, delta] = read_vlq(m_seq_ptr);
-        //fmt::print("delta: {} with len {}\n", delta, len);
+        // fmt::print("delta: {} with len {}\n", delta, len);
         m_seq_ptr += len;
         m_time += delta;
 
@@ -248,11 +334,13 @@ void midi_player::step()
                     break;
                 }
             default:
-                throw unknown_event();
+                throw midi_error();
                 return;
             }
-        } catch (unknown_event& e) {
-            fmt::print("No handler for unknown event {:x}\n", m_status);
+        } catch (midi_error& e) {
+            fmt::print("MIDI Error: {}\n", e.what());
+
+            fmt::print("Sequence following: ");
             for (int i = 0; i < 10; i++) {
                 fmt::print("{:x} ", m_seq_ptr[i]);
             }
