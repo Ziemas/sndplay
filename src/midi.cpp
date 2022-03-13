@@ -1,6 +1,10 @@
+// Copyright: 2021 - 2021, Ziemas
+// SPDX-License-Identifier: ISC
 #include "midi.h"
 #include "musplay.h"
+#include <SDL.h>
 #include <fmt/format.h>
+#include <pthread.h>
 
 /*
 ** In the original 989snd, the player struct can live in different places
@@ -79,25 +83,25 @@ std::pair<size_t, u32> midi_player::read_vlq(u8* value)
 
 void midi_player::note_on()
 {
-    fmt::print("{} note on {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+    fmt::print("{}: note on {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
     m_seq_ptr += 2;
 }
 
 void midi_player::note_off()
 {
-    fmt::print("{} note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+    fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
     m_seq_ptr += 2;
 }
 
 void midi_player::program_change()
 {
-    fmt::print("{} program change {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
-    m_seq_ptr += 2;
+    fmt::print("{}: program change {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+    m_seq_ptr += 1;
 }
 
 void midi_player::channel_pressure()
 {
-    fmt::print("{} channel pressure {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0]);
+    fmt::print("{}: channel pressure {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0]);
     m_seq_ptr += 1;
 }
 
@@ -117,17 +121,16 @@ void midi_player::meta_event()
     if (*m_seq_ptr == 0x2f) {
         fmt::print("End of track!\n");
         // loop point
-        // m_seq_ptr = m_seq_data_start;
+         m_seq_ptr = m_seq_data_start;
 
         m_track_complete = true;
         return;
     }
 
-    for (int i = 0; i < 10; i++) {
-        fmt::print("{:x}\n", m_seq_ptr[i]);
+    if (*m_seq_ptr == 0x51) {
+        m_tempo = (m_seq_ptr[2] << 16) | (m_seq_ptr[3] << 8) | (m_seq_ptr[4]);
     }
 
-    fmt::print("len {:x}\n", m_seq_ptr[2] + 2);
     m_seq_ptr += 2 + len;
 }
 
@@ -155,9 +158,131 @@ void midi_player::system_event()
     }
 }
 
-void midi_player::play()
+void midi_player::sdl_callback(void* userdata, u8* stream, int len)
 {
-    step();
+    memset(stream, len, 1);
+
+    // len in bytes, dive by channel count and sample size
+    auto player = reinterpret_cast<midi_player*>(userdata);
+    player->play(stream, 4096);
+}
+
+void midi_player::start()
+{
+    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+        throw std::runtime_error("SDL init failed");
+    }
+
+    SDL_AudioSpec want {}, got {};
+    want.channels = 2;
+    want.format = AUDIO_S16;
+    want.freq = 48000;
+    want.samples = 4096;
+    want.callback = &sdl_callback;
+    want.userdata = this;
+
+    m_dev = SDL_OpenAudioDevice(nullptr, 0, &want, &got, 0);
+    if (m_dev == 0) {
+        throw std::runtime_error("SDL OpenAudioDevice failed");
+    }
+
+    fmt::print("Starting track {:.4}\n", (char*)&m_header->BankID);
+
+    SDL_PauseAudioDevice(m_dev, 0);
+
+    while (!m_track_complete) {
+        timespec rqtp {}, rmtp {};
+        rqtp.tv_nsec = 0;
+        rqtp.tv_sec = 1;
+        if (nanosleep(&rqtp, &rmtp) == -1) {
+            break;
+        }
+    }
+}
+
+void midi_player::play(u8* output, int len)
+{
+    try {
+        for (int i = len; i > 0; i--) {
+            step();
+        }
+    } catch (midi_error& e) {
+        m_track_complete = true;
+        fmt::print("MIDI Error: {}\n", e.what());
+
+        fmt::print("Sequence following: ");
+        for (int i = 0; i < 10; i++) {
+            fmt::print("{:x} ", m_seq_ptr[i]);
+        }
+        fmt::print("\n");
+    }
+}
+
+void midi_player::new_delta(bool reset)
+{
+    auto [len, delta] = read_vlq(m_seq_ptr);
+    m_seq_ptr += len;
+    m_time += delta;
+
+    if (reset) {
+        m_ppt = (mics_per_tick * 1000) / (m_tempo / (m_ppq / 19));
+    }
+
+    m_tickdelta = delta * 100 + m_tickerror;
+    m_tick_countdown = ((((m_tickdelta / 100) * m_tempo) / m_ppq - 1) + mics_per_tick) / mics_per_tick;
+    fmt::print("delta {} tick countdown {} ppq {} tempo {} tickdelta {}\n", delta, m_tick_countdown, m_ppq, m_tempo, m_tickdelta);
+    m_tickerror = m_tickdelta - m_ppt * m_tick_countdown;
+}
+
+void midi_player::step()
+{
+    if (m_get_delta) {
+        new_delta(true);
+        m_get_delta = false;
+    } else {
+        m_tick_countdown--;
+    }
+
+    while (!m_tick_countdown && !m_track_complete) {
+        // running status, new events always have top bit
+        if (*m_seq_ptr & 0x80) {
+            m_status = *m_seq_ptr;
+            m_seq_ptr++;
+        }
+
+        switch (m_status >> 4) {
+        case 0x8:
+            note_off();
+            break;
+        case 0x9:
+            note_on();
+            break;
+        case 0xD:
+            channel_pressure();
+            break;
+        case 0xC:
+            program_change();
+            break;
+        case 0xE:
+            channel_pitch();
+            break;
+        case 0xF:
+            // normal meta-event
+            if (m_status == 0xFF) {
+                meta_event();
+                break;
+            }
+            if (m_status == 0xF0) {
+                system_event();
+                break;
+            }
+        default:
+            throw midi_error(fmt::format("MIDI error: invalid status {}", m_status));
+            return;
+        }
+
+        new_delta(false);
+    }
 }
 
 #define AME_OP(op, body, argc)              \
@@ -239,61 +364,6 @@ void midi_player::run_ame(u8* stream)
     m_seq_ptr = stream;
 }
 
-void midi_player::step()
-{
-    while (!m_track_complete) {
-        auto [len, delta] = read_vlq(m_seq_ptr);
-        // fmt::print("delta: {} with len {}\n", delta, len);
-        m_seq_ptr += len;
-        m_time += delta;
-
-        // running status, new events always have top bit
-        if (*m_seq_ptr & 0x80) {
-            m_status = *m_seq_ptr;
-            m_seq_ptr++;
-        }
-
-        try {
-            switch (m_status >> 4) {
-            case 0x8:
-                note_off();
-                break;
-            case 0x9:
-                note_on();
-                break;
-            case 0xD:
-                channel_pressure();
-                break;
-            case 0xC:
-                program_change();
-                break;
-            case 0xE:
-                channel_pitch();
-                break;
-            case 0xF:
-                // normal meta-event
-                if (m_status == 0xFF) {
-                    meta_event();
-                    break;
-                }
-                if (m_status == 0xF0) {
-                    system_event();
-                    break;
-                }
-            default:
-                throw midi_error();
-                return;
-            }
-        } catch (midi_error& e) {
-            fmt::print("MIDI Error: {}\n", e.what());
-
-            fmt::print("Sequence following: ");
-            for (int i = 0; i < 10; i++) {
-                fmt::print("{:x} ", m_seq_ptr[i]);
-            }
-            fmt::print("\n");
-
-            break;
-        }
-    }
-}
+#undef AME_CMP
+#undef AME_COND
+#undef AME_OP

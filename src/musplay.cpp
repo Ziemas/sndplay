@@ -1,4 +1,5 @@
-#include "musplay.h"
+// Copyright: 2021 - 2021, Ziemas
+// SPDX-License-Identifier: ISC
 #include "midi.h"
 #include <cassert>
 #include <cstdio>
@@ -29,16 +30,16 @@ void soundbank::load_seq()
 
         //}
 
-        auto midi = (MIDIBlockHeader*)(seqBuf.get() + mmidi->BlockPtr[0]);
-        midi_player player((u8*)((uintptr_t)midi + (uintptr_t)midi->DataStart), sampleBuf.get());
-        player.play();
+        auto midi = (MIDIBlockHeader*)(seqBuf.get() + mmidi->BlockPtr[1]);
+        midi_player player(midi, sampleBuf.get());
+        player.start();
     }
 
     if (*id == FOURCC('M', 'I', 'D', ' ')) {
         auto midi = (MIDIBlockHeader*)id;
 
-        midi_player player((u8*)((uintptr_t)midi + (uintptr_t)midi->DataStart), sampleBuf.get());
-        player.play();
+        midi_player player(midi, sampleBuf.get());
+        player.start();
     }
 }
 

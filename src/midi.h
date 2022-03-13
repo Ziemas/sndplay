@@ -1,4 +1,8 @@
+// Copyright: 2021 - 2021, Ziemas
+// SPDX-License-Identifier: ISC
 #pragma once
+#include "SDL_audio.h"
+#include "musplay.h"
 #include "synth.h"
 #include "types.h"
 #include <exception>
@@ -6,13 +10,22 @@
 
 class midi_player {
 public:
-    midi_player(u8* sequence_data, u8* sample_data)
-        : m_synth(sample_data)
-        , m_seq_data_start(sequence_data)
-        , m_seq_ptr(sequence_data) {};
-    void play();
+    midi_player(MIDIBlockHeader* block, u8* sample_data)
+        : m_header(block)
+        , m_synth(sample_data)
+    {
+        m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
+        m_seq_ptr = m_seq_data_start;
+        m_tempo = block->Tempo;
+        m_ppq = block->PPQ;
+    };
+
+    void start();
 
 private:
+    static constexpr int tickrate = 48000;
+    //static constexpr int tickrate = 240;
+    static constexpr int mics_per_tick = (100000000 / tickrate) / 100;
     struct midi_error : public std::exception {
         midi_error(std::string text)
             : msg(std::move(text))
@@ -63,14 +76,23 @@ private:
 
     };
 
+    MIDIBlockHeader* m_header { nullptr };
+    SDL_AudioDeviceID m_dev;
+
     synth m_synth;
 
     u8* m_seq_data_start { nullptr };
     u8* m_seq_ptr { nullptr };
     u8 m_status { 0 };
-    u32 m_time { 0 };
-    u32 m_tick { 0 };
     u32 m_tickrate { 240 };
+    u32 m_tempo { 500000 };
+    u32 m_ppq { 480 };
+    u32 m_time { 0 };
+    u32 m_tickerror { 0 };
+    u32 m_tickdelta { 0 };
+    u32 m_ppt { 0 };
+    u64 m_tick_countdown { 0 };
+    bool m_get_delta { true };
     bool m_track_complete { false };
 
     u8* m_macro[16];
@@ -79,7 +101,12 @@ private:
     u8 m_register[16];
     u8 m_excite { 0 };
 
+    static void sdl_callback(void* userdata, u8* stream, int len);
+
+    void play(u8* output, int len);
+
     void step();
+    void new_delta(bool reset);
 
     void run_ame(u8* macro);
     void note_on();
