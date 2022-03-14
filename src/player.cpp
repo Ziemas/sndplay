@@ -122,8 +122,9 @@ u32 snd_player::load_bank(std::filesystem::path path)
 
     if (attr.num_chunks >= 2) {
         in.seekg(attr.where[1].offset, std::fstream::beg);
-        bank.sampleBuf = std::make_unique<u8[]>(attr.where[1].size);
-        in.read((char*)bank.sampleBuf.get(), attr.where[1].size);
+        auto samples = std::make_unique<u8[]>(attr.where[1].size);
+        in.read((char*)samples.get(), attr.where[1].size);
+        m_synth.load_samples(bank.d.BankID, std::move(samples));
     }
 
     if (attr.num_chunks >= 3) {

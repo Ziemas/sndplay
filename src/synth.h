@@ -46,7 +46,9 @@ public:
     void key_on(Tone& tone, u8 channel, u8 note, u8 velocity);
     void key_off(Tone& tone, u8 channel, u8 note, u8 velocity);
 
+    void load_samples(u32 bank, std::unique_ptr<u8[]>);
+
 private:
-    std::forward_list<std::unique_ptr<voice>> m_voices;
     std::unordered_map<u32, std::unique_ptr<u8[]>> m_bank_samples;
+    std::forward_list<std::unique_ptr<voice>> m_voices;
 };
