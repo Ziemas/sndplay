@@ -7,10 +7,6 @@
 
 class voice {
 public:
-    voice(u16* sample)
-        : m_sample(sample)
-    {
-    }
     void run();
 
 private:

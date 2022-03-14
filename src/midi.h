@@ -3,8 +3,8 @@
 #pragma once
 #include "SDL_audio.h"
 #include "musplay.h"
-#include "synth.h"
 #include "types.h"
+#include "voice.h"
 #include <exception>
 #include <utility>
 
@@ -12,7 +12,7 @@ class midi_player {
 public:
     midi_player(MIDIBlockHeader* block, u8* sample_data)
         : m_header(block)
-        , m_synth(sample_data)
+        , m_sample_data(sample_data)
     {
         m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
         m_seq_ptr = m_seq_data_start;
@@ -24,7 +24,7 @@ public:
 
 private:
     static constexpr int tickrate = 48000;
-    //static constexpr int tickrate = 240;
+    // static constexpr int tickrate = 240;
     static constexpr int mics_per_tick = (100000000 / tickrate) / 100;
     struct midi_error : public std::exception {
         midi_error(std::string text)
@@ -79,7 +79,9 @@ private:
     MIDIBlockHeader* m_header { nullptr };
     SDL_AudioDeviceID m_dev;
 
-    synth m_synth;
+    u8* m_sample_data { nullptr };
+
+    std::array<voice, 16> m_voices;
 
     u8* m_seq_data_start { nullptr };
     u8* m_seq_ptr { nullptr };
@@ -96,7 +98,8 @@ private:
     bool m_track_complete { false };
 
     u8* m_macro[16];
-    GroupDescription m_groups[16];
+    std::array<GroupDescription, 16> m_groups;
+    std::array<u8, 16> m_programs;
 
     u8 m_register[16];
     u8 m_excite { 0 };

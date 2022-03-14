@@ -50,6 +50,8 @@ struct Prog {
 };
 
 struct SoundBank;
+
+// Generic
 struct Sound {
     /*   0 */ s32 Type;
     /*   4 */ /*SoundBank**/ u32 Bank;
@@ -68,6 +70,7 @@ struct Sound {
     /*  1a */ u16 pad3;
 };
 
+// For midi banks
 typedef struct MIDISound {
     /*   0 */ s32 Type;
     /*   4 */ /*SoundBank**/ u32 Bank;

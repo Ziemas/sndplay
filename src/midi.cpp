@@ -83,7 +83,11 @@ std::pair<size_t, u32> midi_player::read_vlq(u8* value)
 
 void midi_player::note_on()
 {
-    fmt::print("{}: note on {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+    u8 channel = m_status & 0xf;
+    u8 note = m_seq_ptr[0];
+    u8 velocity = m_seq_ptr[1];
+
+    fmt::print("{}: [ch{:01x}] note on {:02x} {:02x}\n", m_time, channel, note, velocity);
     m_seq_ptr += 2;
 }
 
@@ -95,7 +99,10 @@ void midi_player::note_off()
 
 void midi_player::program_change()
 {
-    fmt::print("{}: program change {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+    u8 channel = m_status & 0xf;
+    u8 program = m_seq_ptr[0];
+
+    fmt::print("{}: [ch{:01x}] program change {:02x} -> {:02x}\n", m_time, channel, m_programs[channel], program);
     m_seq_ptr += 1;
 }
 
@@ -230,7 +237,7 @@ void midi_player::new_delta(bool reset)
 
     m_tickdelta = delta * 100 + m_tickerror;
     m_tick_countdown = ((((m_tickdelta / 100) * m_tempo) / m_ppq - 1) + mics_per_tick) / mics_per_tick;
-    fmt::print("delta {} tick countdown {} ppq {} tempo {} tickdelta {}\n", delta, m_tick_countdown, m_ppq, m_tempo, m_tickdelta);
+    //fmt::print("delta {} tick countdown {} ppq {} tempo {} tickdelta {}\n", delta, m_tick_countdown, m_ppq, m_tempo, m_tickdelta);
     m_tickerror = m_tickdelta - m_ppt * m_tick_countdown;
 }
 
