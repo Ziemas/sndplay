@@ -1,9 +1,10 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #pragma once
-#include "sound_handler.h"
 #include "SDL_audio.h"
 #include "player.h"
+#include "sound_handler.h"
+#include "synth.h"
 #include "types.h"
 #include "voice.h"
 #include <exception>
@@ -37,8 +38,9 @@ struct MultiMIDIBlockHeader {
 
 class midi_handler : public sound_handler {
 public:
-    midi_handler(MIDIBlockHeader* block)
+    midi_handler(MIDIBlockHeader* block, synth& synth)
         : m_header(block)
+        , m_synth(synth)
     {
         m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
         m_seq_ptr = m_seq_data_start;
@@ -122,11 +124,13 @@ private:
     bool m_track_complete { false };
 
     u8* m_macro[16];
-    std::array<GroupDescription, 16> m_groups;
-    std::array<u8, 16> m_programs;
+    std::array<GroupDescription, 16> m_groups {};
+    std::array<u8, 16> m_programs {};
 
     u8 m_register[16];
     u8 m_excite { 0 };
+
+    synth& m_synth;
 
     void step();
     void new_delta(bool reset);

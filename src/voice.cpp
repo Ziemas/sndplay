@@ -16,7 +16,7 @@ static constexpr std::array<std::array<s16, 2>, 5> adpcm_coefs = { {
     { 122, -60 },
 } };
 
-void voice::run()
+s16_output voice::run()
 {
-
+    return s16_output{};
 }

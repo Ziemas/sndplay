@@ -8,8 +8,8 @@ sources = files([
     'src/sndplay.cpp',
     'src/player.cpp',
     'src/midi.cpp',
-    #'src/synth.cpp',
-    #'src/voice.cpp',
+    'src/synth.cpp',
+    'src/voice.cpp',
 ])
 
 executable('musplay', sources, dependencies : [sdl, fmt, threads])

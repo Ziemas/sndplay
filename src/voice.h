@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: ISC
 #pragma once
 #include "bitfield.h"
+#include "envelope.h"
 #include "fifo.h"
 #include "types.h"
 
 class voice {
 public:
-    void run();
+    s16_output run();
 
 private:
     union ADPCMHeader {
@@ -44,6 +45,6 @@ private:
 
     ADPCMHeader m_CurHeader {};
 
-    // ADSR m_ADSR {};
-    // VolumePair m_Volume {};
+    ADSR m_ADSR {};
+    VolumePair m_Volume {};
 };

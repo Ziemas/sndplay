@@ -88,6 +88,7 @@ void midi_handler::note_on()
     u8 velocity = m_seq_ptr[1];
 
     fmt::print("{}: [ch{:01x}] note on {:02x} {:02x}\n", m_time, channel, note, velocity);
+    m_synth.key_on(1, channel, velocity, note);
     m_seq_ptr += 2;
 }
 
@@ -123,7 +124,8 @@ void midi_handler::channel_pitch()
 void midi_handler::meta_event()
 {
     fmt::print("{}: meta event {:02x}\n", m_time, *m_seq_ptr);
-    size_t len = m_seq_ptr[2];
+    size_t len = m_seq_ptr[1];
+    fmt::print("len {}\n", len);
 
     if (*m_seq_ptr == 0x2f) {
         fmt::print("End of track!\n");
@@ -138,7 +140,7 @@ void midi_handler::meta_event()
         m_tempo = (m_seq_ptr[2] << 16) | (m_seq_ptr[3] << 8) | (m_seq_ptr[4]);
     }
 
-    m_seq_ptr += 2 + len;
+    m_seq_ptr += len + 2;
 }
 
 void midi_handler::system_event()
@@ -184,6 +186,7 @@ void midi_handler::tick()
 void midi_handler::new_delta(bool reset)
 {
     auto [len, delta] = read_vlq(m_seq_ptr);
+
     m_seq_ptr += len;
     m_time += delta;
 

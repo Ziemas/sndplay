@@ -13,30 +13,6 @@
 #include <unordered_map>
 #include <vector>
 
-struct Tone {
-    /*   0 */ s8 Priority;
-    /*   1 */ s8 Vol;
-    /*   2 */ s8 CenterNote;
-    /*   3 */ s8 CenterFine;
-    /*   4 */ s16 Pan;
-    /*   6 */ s8 MapLow;
-    /*   7 */ s8 MapHigh;
-    /*   8 */ s8 PBLow;
-    /*   9 */ s8 PBHigh;
-    /*   a */ s16 ADSR1;
-    /*   c */ s16 ADSR2;
-    /*   e */ s16 Flags;
-    /*  10 */ /*void**/ u32 VAGInSR;
-    /*  14 */ u32 reserved1;
-};
-
-struct ProgData {
-    /*   0 */ s8 NumTones;
-    /*   1 */ s8 Vol;
-    /*   2 */ s16 Pan;
-    /*   4 */ /*Tone**/ u32 FirstTone;
-};
-
 struct MIDISound {
     /*   0 */ s32 Type;
     /*   4 */ /*SoundBank**/ u32 Bank;
@@ -81,10 +57,11 @@ struct LocAndSize {
     /*   4 */ u32 size;
 };
 
+template <size_t chunks>
 struct FileAttributes {
     /*   0 */ u32 type;
     /*   4 */ u32 num_chunks;
-    /*   8 */ LocAndSize where[0];
+    /*   8 */ LocAndSize where[chunks];
 };
 
 struct Prog {
@@ -92,6 +69,7 @@ struct Prog {
     std::vector<Tone> tones;
 };
 
+struct Prog;
 struct SoundBank {
     SoundBankData d;
     std::vector<Prog> programs;
@@ -103,12 +81,6 @@ class ame_sound_handler : public sound_handler {
 public:
     void tick() override {};
 };
-
-#pragma pack(push, 1)
-struct s16_output {
-    s16 left { 0 }, right { 0 };
-};
-#pragma pack(pop)
 
 struct MIDIBlockHeader;
 class snd_player {
@@ -122,7 +94,7 @@ public:
     snd_player& operator=(snd_player&& other) noexcept = default;
 
     u32 load_bank(std::filesystem::path path);
-    void load_midi(std::unique_ptr<u8[]> midi);
+    void load_midi(std::fstream& in);
     void play_sound(u32 bank, u32 sound);
 
     // TODO this shouldn't be public, figure something out
@@ -135,6 +107,8 @@ private:
     std::vector<SoundBank> m_soundblocks;
     std::vector<std::unique_ptr<u8[]>> m_midi_chunks;
     std::unordered_map<u32, MIDIBlockHeader*> m_midi;
+
+    synth m_synth;
 
     SDL_AudioDeviceID m_dev {};
     static void sdl_callback(void* userdata, u8* stream, int len);

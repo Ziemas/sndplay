@@ -41,10 +41,15 @@ void snd_player::sdl_callback(void* userdata, u8* stream, int len)
     ((snd_player*)userdata)->tick((s16_output*)stream, samples);
 }
 
-void snd_player::tick(s16_output *stream, int samples) {
+void snd_player::tick(s16_output* stream, int samples)
+{
     std::scoped_lock lock(m_ticklock);
-    for (auto& handler: m_handlers) {
-        handler.get()->tick();
+    for (int i = 0; i < samples; i++) {
+        for (auto& handler : m_handlers) {
+            handler.get()->tick();
+        }
+
+        *stream++ = m_synth.tick();
     }
 }
 
@@ -54,14 +59,14 @@ u32 snd_player::load_bank(std::filesystem::path path)
     fmt::print("Loading bank {}\n", path.string());
     std::fstream in(path, std::fstream::binary | std::fstream::in);
 
-    FileAttributes attr;
+    FileAttributes<3> attr;
     in.read((char*)(&attr), sizeof(attr));
 
     fmt::print("type {}\n", attr.type);
     fmt::print("chunks {}\n", attr.num_chunks);
 
     for (u32 i = 0; i < attr.num_chunks; i++) {
-        in.read((char*)&attr.where[i], sizeof(attr.where[i]));
+        // in.read((char*)&attr.where[i], sizeof(attr.where[i]));
 
         fmt::print("chunk {}\n", i);
         fmt::print("\toffset {}\n", attr.where[i].offset);
@@ -121,10 +126,7 @@ u32 snd_player::load_bank(std::filesystem::path path)
 
     if (attr.num_chunks >= 3) {
         in.seekg(attr.where[2].offset, std::fstream::beg);
-        auto midi = std::make_unique<u8[]>(attr.where[2].size);
-        in.read((char*)midi.get(), attr.where[2].size);
-
-        load_midi(std::move(midi));
+        load_midi(in);
     }
 
     u32 id = bank.d.BankID;
@@ -133,12 +135,23 @@ u32 snd_player::load_bank(std::filesystem::path path)
     return id;
 }
 
-void snd_player::load_midi(std::unique_ptr<u8[]> midi)
+void snd_player::load_midi(std::fstream& in)
 {
     std::scoped_lock lock(m_ticklock);
-    auto* attr = (FileAttributes*)midi.get();
-    u32 id = *(u32*)(midi.get() + attr->where[0].offset);
-    fmt::print("midi type {:.4}\n", (char*)&id);
+    FileAttributes<1> attr;
+    u32 cur = in.tellg();
+
+    in.read((char*)&attr, sizeof(attr));
+    in.seekg(cur + attr.where[0].offset, std::fstream::beg);
+
+    auto midi = std::make_unique<u8[]>(attr.where[0].size);
+    in.read((char*)midi.get(), attr.where[0].size);
+
+    auto h = (MIDIBlockHeader*)midi.get();
+    fmt::print("Loaded midi {:.4}\n", (char*)&h->ID);
+
+    m_midi.emplace(h->ID, (MIDIBlockHeader*)midi.get());
+    m_midi_chunks.emplace_back(std::move(midi));
 }
 
 void snd_player::play_sound(u32 bank_id, u32 sound_id)
@@ -151,8 +164,10 @@ void snd_player::play_sound(u32 bank_id, u32 sound_id)
         fmt::print("playing sound: {}, type: {}, MIDI: {:.4}\n", sound.Index, sound.Type, (char*)&sound.MIDIID);
 
         switch (sound.Type) {
-        case 4: // normal MIDI
-            break;
+        case 4: { // normal MIDI
+            auto header = m_midi.at(sound.MIDIID);
+            m_handlers.emplace_front(std::make_unique<midi_handler>(header, m_synth));
+        } break;
         case 5: // AME
         default:
             fmt::print("Unhandled sound type {}\n", sound.Type);
