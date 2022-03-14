@@ -19,8 +19,8 @@ using byte = std::byte;
 struct SoundBank;
 class locator {
 public:
-    virtual ~locator() = 0;
-    virtual SoundBank& getBank(u32 id) = 0;
+    virtual ~locator() = default;
+    virtual SoundBank& get_bank(u32 id) = 0;
 };
 
 #pragma pack(push, 1)

@@ -1,3 +1,5 @@
+// Copyright: 2021 - 2021, Ziemas
+// SPDX-License-Identifier: ISC
 #include "player.h"
 #include <fmt/format.h>
 #include <fstream>
@@ -178,4 +180,9 @@ void snd_player::play_sound(u32 bank_id, u32 sound_id)
         m_ticklock.unlock();
         return;
     }
+}
+
+
+SoundBank& snd_player::get_bank(u32 id) {
+    return m_soundbanks.at(id);
 }

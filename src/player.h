@@ -83,15 +83,15 @@ public:
 };
 
 struct MIDIBlockHeader;
-class snd_player {
+class snd_player : locator{
 public:
     snd_player();
     ~snd_player();
-    snd_player(const snd_player&) = delete;
-    snd_player operator=(const snd_player&) = delete;
+    //snd_player(const snd_player&) = delete;
+    //snd_player operator=(const snd_player&) = delete;
 
-    snd_player(snd_player&& other) noexcept = default;
-    snd_player& operator=(snd_player&& other) noexcept = default;
+    //snd_player(snd_player&& other) noexcept = default;
+    //snd_player& operator=(snd_player&& other) noexcept = default;
 
     u32 load_bank(std::filesystem::path path);
     void load_midi(std::fstream& in);
@@ -100,6 +100,8 @@ public:
     // TODO this shouldn't be public, figure something out
     void tick(s16_output* stream, int samples);
 
+
+    SoundBank& get_bank(u32 id) override;
 private:
     std::recursive_mutex m_ticklock; // TODO does not need to recursive with some light restructuring
     std::forward_list<std::unique_ptr<sound_handler>> m_handlers;
