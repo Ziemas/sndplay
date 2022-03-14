@@ -1,16 +1,43 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #pragma once
+#include "sound_handler.h"
 #include "SDL_audio.h"
-#include "musplay.h"
+#include "player.h"
 #include "types.h"
 #include "voice.h"
 #include <exception>
+#include <string>
 #include <utility>
 
-class midi_player {
+struct MIDIBlockHeader {
+    /*   0 */ u32 DataID;
+    /*   4 */ s16 Version;
+    /*   6 */ s8 Flags;
+    /*   7 */ s8 pad1;
+    /*   8 */ u32 ID;
+    /*   c */ /*void**/ u32 NextMIDIBlock;
+    /*  10 */ u32 BankID;
+    /*  14 */ /*SoundBank**/ u32 BankPtr;
+    /*  18 */ /*s8**/ u32 DataStart;
+    /*  1c */ /*s8**/ u32 MultiMIDIParent;
+    /*  20 */ u32 Tempo;
+    /*  24 */ u32 PPQ;
+};
+
+struct MultiMIDIBlockHeader {
+    /*   0 */ u32 DataID;
+    /*   4 */ s16 Version;
+    /*   6 */ s8 Flags;
+    /*   7 */ s8 NumMIDIBlocks;
+    /*   8 */ u32 ID;
+    /*   c */ /*void**/ u32 NextMIDIBlock;
+    /*  10 */ /*s8**/ u32 BlockPtr[1];
+};
+
+class midi_handler : public sound_handler {
 public:
-    midi_player(MIDIBlockHeader* block, u8* sample_data)
+    midi_handler(MIDIBlockHeader* block, u8* sample_data)
         : m_header(block)
         , m_sample_data(sample_data)
     {
@@ -21,6 +48,7 @@ public:
     };
 
     void start();
+    void tick() override;
 
 private:
     static constexpr int tickrate = 48000;
@@ -103,10 +131,6 @@ private:
 
     u8 m_register[16];
     u8 m_excite { 0 };
-
-    static void sdl_callback(void* userdata, u8* stream, int len);
-
-    void play(u8* output, int len);
 
     void step();
     void new_delta(bool reset);

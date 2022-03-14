@@ -1,4 +1,10 @@
+// Copyright: 2021 - 2021, Ziemas
+// SPDX-License-Identifier: ISC
+#pragma once
+#include "sound_handler.h"
+#include "midi.h"
 #include "types.h"
+#include <SDL.h>
 #include <filesystem>
 #include <forward_list>
 #include <memory>
@@ -62,32 +68,6 @@ struct SoundBankData {
     /*  2c */ u32 VagDataSize;
     /*  30 */ /*SoundBank**/ u32 NextBank;
 };
-
-struct MIDIBlockHeader {
-    /*   0 */ u32 DataID;
-    /*   4 */ s16 Version;
-    /*   6 */ s8 Flags;
-    /*   7 */ s8 pad1;
-    /*   8 */ u32 ID;
-    /*   c */ /*void**/ u32 NextMIDIBlock;
-    /*  10 */ u32 BankID;
-    /*  14 */ /*SoundBank**/ u32 BankPtr;
-    /*  18 */ /*s8**/ u32 DataStart;
-    /*  1c */ /*s8**/ u32 MultiMIDIParent;
-    /*  20 */ u32 Tempo;
-    /*  24 */ u32 PPQ;
-};
-
-struct MultiMIDIBlockHeader {
-    /*   0 */ u32 DataID;
-    /*   4 */ s16 Version;
-    /*   6 */ s8 Flags;
-    /*   7 */ s8 NumMIDIBlocks;
-    /*   8 */ u32 ID;
-    /*   c */ /*void**/ u32 NextMIDIBlock;
-    /*  10 */ /*s8**/ u32 BlockPtr[1];
-};
-
 enum class file_chunk : u32 {
     bank,
     samples,
@@ -117,14 +97,40 @@ struct SoundBank {
     std::unique_ptr<u8[]> sampleBuf;
 };
 
+class ame_sound_handler : public sound_handler {
+public:
+    void tick() override {};
+};
+
+#pragma pack(push, 1)
+struct s16_output {
+    s16 left { 0 }, right { 0 };
+};
+#pragma pack(pop)
+
 class snd_player {
 public:
+    snd_player();
+    ~snd_player();
+    snd_player(const snd_player&) = delete;
+    snd_player operator=(const snd_player&) = delete;
+
+    snd_player(snd_player&& other) noexcept = default;
+    snd_player& operator=(snd_player&& other) noexcept = default;
+
     u32 load_bank(std::filesystem::path path);
     void load_midi(std::unique_ptr<u8[]> midi);
     void play_sound(u32 bank, u32 sound);
 
+    // TODO this shouldn't be public, figure something out
+    void tick(s16_output* stream, int samples);
+
 private:
+    std::forward_list<std::unique_ptr<sound_handler>> m_handlers;
     std::unordered_map<u32, SoundBank> m_soundbanks;
     std::vector<SoundBank> m_soundblocks;
-    std::unordered_map<u32, MIDIBlockHeader> m_midi;
+    // std::unordered_map<u32, MIDIBlockHeader> m_midi;
+
+    SDL_AudioDeviceID m_dev {};
+    static void sdl_callback(void* userdata, u8* stream, int len);
 };

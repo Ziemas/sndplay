@@ -64,7 +64,7 @@
 };
 // clang-format on
 
-std::pair<size_t, u32> midi_player::read_vlq(u8* value)
+std::pair<size_t, u32> midi_handler::read_vlq(u8* value)
 {
     size_t len = 1;
     u32 out = *value & 0x7f;
@@ -81,7 +81,7 @@ std::pair<size_t, u32> midi_player::read_vlq(u8* value)
     return { len, out };
 }
 
-void midi_player::note_on()
+void midi_handler::note_on()
 {
     u8 channel = m_status & 0xf;
     u8 note = m_seq_ptr[0];
@@ -91,13 +91,13 @@ void midi_player::note_on()
     m_seq_ptr += 2;
 }
 
-void midi_player::note_off()
+void midi_handler::note_off()
 {
     fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
     m_seq_ptr += 2;
 }
 
-void midi_player::program_change()
+void midi_handler::program_change()
 {
     u8 channel = m_status & 0xf;
     u8 program = m_seq_ptr[0];
@@ -106,13 +106,13 @@ void midi_player::program_change()
     m_seq_ptr += 1;
 }
 
-void midi_player::channel_pressure()
+void midi_handler::channel_pressure()
 {
     fmt::print("{}: channel pressure {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0]);
     m_seq_ptr += 1;
 }
 
-void midi_player::channel_pitch()
+void midi_handler::channel_pitch()
 {
     u8 channel = m_status & 0xF;
     u32 pitch = (m_seq_ptr[0] << 7) | m_seq_ptr[1];
@@ -120,7 +120,7 @@ void midi_player::channel_pitch()
     m_seq_ptr += 2;
 }
 
-void midi_player::meta_event()
+void midi_handler::meta_event()
 {
     fmt::print("{}: meta event {:02x}\n", m_time, *m_seq_ptr);
     size_t len = m_seq_ptr[2];
@@ -128,7 +128,7 @@ void midi_player::meta_event()
     if (*m_seq_ptr == 0x2f) {
         fmt::print("End of track!\n");
         // loop point
-         m_seq_ptr = m_seq_data_start;
+        m_seq_ptr = m_seq_data_start;
 
         m_track_complete = true;
         return;
@@ -141,7 +141,7 @@ void midi_player::meta_event()
     m_seq_ptr += 2 + len;
 }
 
-void midi_player::system_event()
+void midi_handler::system_event()
 {
     fmt::print("{}: system event {:02x}\n", m_time, *m_seq_ptr);
 
@@ -165,54 +165,10 @@ void midi_player::system_event()
     }
 }
 
-void midi_player::sdl_callback(void* userdata, u8* stream, int len)
-{
-    memset(stream, len, 1);
-
-    // len in bytes, dive by channel count and sample size
-    auto player = reinterpret_cast<midi_player*>(userdata);
-    player->play(stream, 4096);
-}
-
-void midi_player::start()
-{
-    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
-        throw std::runtime_error("SDL init failed");
-    }
-
-    SDL_AudioSpec want {}, got {};
-    want.channels = 2;
-    want.format = AUDIO_S16;
-    want.freq = 48000;
-    want.samples = 4096;
-    want.callback = &sdl_callback;
-    want.userdata = this;
-
-    m_dev = SDL_OpenAudioDevice(nullptr, 0, &want, &got, 0);
-    if (m_dev == 0) {
-        throw std::runtime_error("SDL OpenAudioDevice failed");
-    }
-
-    fmt::print("Starting track {:.4}\n", (char*)&m_header->BankID);
-
-    SDL_PauseAudioDevice(m_dev, 0);
-
-    while (!m_track_complete) {
-        timespec rqtp {}, rmtp {};
-        rqtp.tv_nsec = 0;
-        rqtp.tv_sec = 1;
-        if (nanosleep(&rqtp, &rmtp) == -1) {
-            break;
-        }
-    }
-}
-
-void midi_player::play(u8* output, int len)
+void midi_handler::tick()
 {
     try {
-        for (int i = len; i > 0; i--) {
-            step();
-        }
+        step();
     } catch (midi_error& e) {
         m_track_complete = true;
         fmt::print("MIDI Error: {}\n", e.what());
@@ -225,7 +181,7 @@ void midi_player::play(u8* output, int len)
     }
 }
 
-void midi_player::new_delta(bool reset)
+void midi_handler::new_delta(bool reset)
 {
     auto [len, delta] = read_vlq(m_seq_ptr);
     m_seq_ptr += len;
@@ -237,11 +193,11 @@ void midi_player::new_delta(bool reset)
 
     m_tickdelta = delta * 100 + m_tickerror;
     m_tick_countdown = ((((m_tickdelta / 100) * m_tempo) / m_ppq - 1) + mics_per_tick) / mics_per_tick;
-    //fmt::print("delta {} tick countdown {} ppq {} tempo {} tickdelta {}\n", delta, m_tick_countdown, m_ppq, m_tempo, m_tickdelta);
+    // fmt::print("delta {} tick countdown {} ppq {} tempo {} tickdelta {}\n", delta, m_tick_countdown, m_ppq, m_tempo, m_tickdelta);
     m_tickerror = m_tickdelta - m_ppt * m_tick_countdown;
 }
 
-void midi_player::step()
+void midi_handler::step()
 {
     if (m_get_delta) {
         new_delta(true);
@@ -309,7 +265,7 @@ void midi_player::step()
     }
 #define AME_CMP(x) AME_COND(if (x) { flag = 1; })
 
-void midi_player::run_ame(u8* stream)
+void midi_handler::run_ame(u8* stream)
 {
     bool done = false;
 

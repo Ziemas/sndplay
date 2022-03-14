@@ -2,6 +2,52 @@
 #include <fmt/format.h>
 #include <fstream>
 
+snd_player::snd_player()
+{
+
+    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+        throw std::runtime_error("SDL init failed");
+    }
+
+    SDL_AudioSpec want {}, got {};
+    want.channels = 2;
+    want.format = AUDIO_S16;
+    want.freq = 48000;
+    want.samples = 4096;
+    want.callback = &sdl_callback;
+    want.userdata = this;
+
+    m_dev = SDL_OpenAudioDevice(nullptr, 0, &want, &got, 0);
+    if (m_dev == 0) {
+        throw std::runtime_error("SDL OpenAudioDevice failed");
+    }
+
+    SDL_PauseAudioDevice(m_dev, 0);
+}
+
+snd_player::~snd_player()
+{
+    SDL_PauseAudioDevice(m_dev, 1);
+    SDL_CloseAudioDevice(m_dev);
+}
+
+void snd_player::sdl_callback(void* userdata, u8* stream, int len)
+{
+    // TODO can remove later
+    memset(stream, 0, len);
+
+    int channels = 2;
+    int sample_size = 2;
+    int samples = (len / sample_size) / channels;
+    ((snd_player*)userdata)->tick((s16_output*)stream, samples);
+}
+
+void snd_player::tick(s16_output *stream, int samples) {
+    for (auto& handler: m_handlers) {
+        handler.get()->tick();
+    }
+}
+
 u32 snd_player::load_bank(std::filesystem::path path)
 {
     fmt::print("Loading bank {}\n", path.string());
@@ -98,12 +144,14 @@ void snd_player::play_sound(u32 bank_id, u32 sound_id)
         auto& bank = m_soundbanks.at(bank_id);
         auto& sound = bank.sounds.at(sound_id);
 
-
         fmt::print("playing sound: {}, type: {}, MIDI: {:.4}\n", sound.Index, sound.Type, (char*)&sound.MIDIID);
 
         switch (sound.Type) {
-            default:
-                fmt::print("Unhandled sound type {}\n", sound.Type);
+        case 4: // normal MIDI
+            break;
+        case 5: // AME
+        default:
+            fmt::print("Unhandled sound type {}\n", sound.Type);
         }
 
     } catch (std::out_of_range& e) {

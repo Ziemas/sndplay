@@ -10,6 +10,15 @@ int main(int argc, char* argv[])
         player.play_sound(bankid, 0);
     }
 
+    while (true) {
+        timespec rqtp {}, rmtp {};
+        rqtp.tv_nsec = 0;
+        rqtp.tv_sec = 1;
+        if (nanosleep(&rqtp, &rmtp) == -1) {
+            break;
+        }
+    }
+
 
     // for (auto& b : gBanks) {
     //     fmt::print("Bank {:.4}\n", (char*)&b.data.BankID);
