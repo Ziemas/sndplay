@@ -1,13 +1,15 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #pragma once
-#include "sound_handler.h"
 #include "midi.h"
+#include "sound_handler.h"
+#include "synth.h"
 #include "types.h"
 #include <SDL.h>
 #include <filesystem>
 #include <forward_list>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -108,6 +110,7 @@ struct s16_output {
 };
 #pragma pack(pop)
 
+struct MIDIBlockHeader;
 class snd_player {
 public:
     snd_player();
@@ -126,10 +129,12 @@ public:
     void tick(s16_output* stream, int samples);
 
 private:
+    std::recursive_mutex m_ticklock; // TODO does not need to recursive with some light restructuring
     std::forward_list<std::unique_ptr<sound_handler>> m_handlers;
     std::unordered_map<u32, SoundBank> m_soundbanks;
     std::vector<SoundBank> m_soundblocks;
-    // std::unordered_map<u32, MIDIBlockHeader> m_midi;
+    std::vector<std::unique_ptr<u8[]>> m_midi_chunks;
+    std::unordered_map<u32, MIDIBlockHeader*> m_midi;
 
     SDL_AudioDeviceID m_dev {};
     static void sdl_callback(void* userdata, u8* stream, int len);

@@ -4,7 +4,6 @@
 
 snd_player::snd_player()
 {
-
     if (SDL_Init(SDL_INIT_AUDIO) < 0) {
         throw std::runtime_error("SDL init failed");
     }
@@ -43,6 +42,7 @@ void snd_player::sdl_callback(void* userdata, u8* stream, int len)
 }
 
 void snd_player::tick(s16_output *stream, int samples) {
+    std::scoped_lock lock(m_ticklock);
     for (auto& handler: m_handlers) {
         handler.get()->tick();
     }
@@ -50,6 +50,7 @@ void snd_player::tick(s16_output *stream, int samples) {
 
 u32 snd_player::load_bank(std::filesystem::path path)
 {
+    std::scoped_lock lock(m_ticklock);
     fmt::print("Loading bank {}\n", path.string());
     std::fstream in(path, std::fstream::binary | std::fstream::in);
 
@@ -128,11 +129,13 @@ u32 snd_player::load_bank(std::filesystem::path path)
 
     u32 id = bank.d.BankID;
     m_soundbanks.emplace(id, std::move(bank));
+
     return id;
 }
 
 void snd_player::load_midi(std::unique_ptr<u8[]> midi)
 {
+    std::scoped_lock lock(m_ticklock);
     auto* attr = (FileAttributes*)midi.get();
     u32 id = *(u32*)(midi.get() + attr->where[0].offset);
     fmt::print("midi type {:.4}\n", (char*)&id);
@@ -140,6 +143,7 @@ void snd_player::load_midi(std::unique_ptr<u8[]> midi)
 
 void snd_player::play_sound(u32 bank_id, u32 sound_id)
 {
+    std::scoped_lock lock(m_ticklock);
     try {
         auto& bank = m_soundbanks.at(bank_id);
         auto& sound = bank.sounds.at(sound_id);
@@ -156,6 +160,7 @@ void snd_player::play_sound(u32 bank_id, u32 sound_id)
 
     } catch (std::out_of_range& e) {
         fmt::print("play_sound: requested bank or sound not found\n");
+        m_ticklock.unlock();
         return;
     }
 }

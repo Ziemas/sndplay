@@ -37,9 +37,8 @@ struct MultiMIDIBlockHeader {
 
 class midi_handler : public sound_handler {
 public:
-    midi_handler(MIDIBlockHeader* block, u8* sample_data)
+    midi_handler(MIDIBlockHeader* block)
         : m_header(block)
-        , m_sample_data(sample_data)
     {
         m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
         m_seq_ptr = m_seq_data_start;
@@ -64,7 +63,7 @@ private:
         {
         }
         std::string msg;
-        const char* what() const throw() override
+        const char* what() const noexcept override
         {
             return msg.c_str();
         }
@@ -105,11 +104,8 @@ private:
     };
 
     MIDIBlockHeader* m_header { nullptr };
-    SDL_AudioDeviceID m_dev;
 
     u8* m_sample_data { nullptr };
-
-    std::array<voice, 16> m_voices;
 
     u8* m_seq_data_start { nullptr };
     u8* m_seq_ptr { nullptr };

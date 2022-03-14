@@ -19,7 +19,6 @@ int main(int argc, char* argv[])
         }
     }
 
-
     // for (auto& b : gBanks) {
     //     fmt::print("Bank {:.4}\n", (char*)&b.data.BankID);
 
