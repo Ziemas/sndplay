@@ -64,11 +64,6 @@ struct FileAttributes {
     /*   8 */ LocAndSize where[chunks];
 };
 
-struct Prog {
-    ProgData d;
-    std::vector<Tone> tones;
-};
-
 struct Prog;
 struct SoundBank {
     SoundBankData d;
@@ -83,7 +78,7 @@ public:
 };
 
 struct MIDIBlockHeader;
-class snd_player : locator{
+class snd_player : public locator {
 public:
     snd_player();
     ~snd_player();

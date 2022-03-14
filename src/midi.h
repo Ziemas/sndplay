@@ -38,8 +38,9 @@ struct MultiMIDIBlockHeader {
 
 class midi_handler : public sound_handler {
 public:
-    midi_handler(MIDIBlockHeader* block, synth& synth)
-        : m_header(block)
+    midi_handler(MIDIBlockHeader* block, synth& synth, locator& loc)
+        : m_locator(loc)
+        , m_header(block)
         , m_synth(synth)
     {
         m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
@@ -104,6 +105,8 @@ private:
         cond_set_reg = 0x13,
 
     };
+
+    locator& m_locator;
 
     MIDIBlockHeader* m_header { nullptr };
 

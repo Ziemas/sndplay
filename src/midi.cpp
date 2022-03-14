@@ -88,7 +88,15 @@ void midi_handler::note_on()
     u8 velocity = m_seq_ptr[1];
 
     fmt::print("{}: [ch{:01x}] note on {:02x} {:02x}\n", m_time, channel, note, velocity);
-    m_synth.key_on(1, channel, velocity, note);
+
+    // Key on all the applicable tones for the program
+    auto& bank = m_locator.get_bank(m_header->BankID);
+    for (auto& t : bank.programs[m_programs[channel]].tones) {
+        if (note >= t.MapLow && note <= t.MapHigh) {
+            m_synth.key_on(t, channel, velocity, note);
+        }
+    }
+
     m_seq_ptr += 2;
 }
 

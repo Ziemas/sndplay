@@ -168,7 +168,7 @@ void snd_player::play_sound(u32 bank_id, u32 sound_id)
         switch (sound.Type) {
         case 4: { // normal MIDI
             auto header = m_midi.at(sound.MIDIID);
-            m_handlers.emplace_front(std::make_unique<midi_handler>(header, m_synth));
+            m_handlers.emplace_front(std::make_unique<midi_handler>(header, m_synth, *this));
         } break;
         case 5: // AME
         default:

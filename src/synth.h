@@ -31,16 +31,20 @@ struct ProgData {
     /*   4 */ /*Tone**/ u32 FirstTone;
 };
 
+struct Prog {
+    ProgData d;
+    std::vector<Tone> tones;
+};
+
 class synth {
 public:
     synth()
     {
     }
 
-
     s16_output tick();
-    void key_on(u32 bank, u8 channel, u8 note, u8 velocity);
-    void key_off(u32 bank, u8 channel, u8 note, u8 velocity);
+    void key_on(Tone& tone, u8 channel, u8 note, u8 velocity);
+    void key_off(Tone& tone, u8 channel, u8 note, u8 velocity);
 
 private:
     std::forward_list<std::unique_ptr<voice>> m_voices;
