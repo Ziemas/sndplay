@@ -30,7 +30,7 @@ void soundbank::load_seq()
 
         //}
 
-        auto midi = (MIDIBlockHeader*)(seqBuf.get() + mmidi->BlockPtr[1]);
+        auto midi = (MIDIBlockHeader*)(seqBuf.get() + mmidi->BlockPtr[]);
         midi_player player(midi, sampleBuf.get());
         player.start();
     }
@@ -150,27 +150,6 @@ static int load_bank(char* filename)
     free(soundBank);
 
     file.close();
-
-    return 0;
-}
-
-int main(int argc, char* argv[])
-{
-    if (argc > 1)
-        load_bank(argv[1]);
-
-    // for (auto& b : gBanks) {
-    //     fmt::print("Bank {:.4}\n", (char*)&b.data.BankID);
-
-    //    fmt::print("Songs:\n");
-    //    for (auto& s : b.sounds) {
-    //        fmt::print("type {}\n", s.Type);
-    //        fmt::print("bank {:.4}\n", (char*)&s.Bank);
-    //        fmt::print("midi {:.4}\n", (char*)&s.MIDIID);
-    //        fmt::print("unk {:.4}\n", (char*)&s.OrigBank);
-    //        fmt::print("{}\n", s.Index);
-    //    }
-    //}
 
     return 0;
 }
