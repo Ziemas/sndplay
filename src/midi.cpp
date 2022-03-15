@@ -89,13 +89,21 @@ void midi_handler::note_on()
 
     fmt::print("{}: [ch{:01x}] note on {:02x} {:02x}\n", m_time, channel, note, velocity);
 
+    int tones = 0;
+
+
     // Key on all the applicable tones for the program
     auto& bank = m_locator.get_bank(m_header->BankID);
-    for (auto& t : bank.programs[m_programs[channel]].tones) {
+    auto& program = bank.programs[m_programs[channel]];
+
+    for (auto& t : program.tones) {
         if (note >= t.MapLow && note <= t.MapHigh) {
-            m_synth.key_on(t, channel, velocity, note);
+            tones++;
+            m_synth.key_on(t, channel, velocity, note, program.d.Vol, program.d.Pan);
         }
     }
+
+    //fmt::print("  {} tone(s) to play for note {} in progam {}\n", tones, note, m_programs[channel]);
 
     m_seq_ptr += 2;
 }
@@ -110,6 +118,8 @@ void midi_handler::program_change()
 {
     u8 channel = m_status & 0xf;
     u8 program = m_seq_ptr[0];
+
+    m_programs[channel] = program;
 
     fmt::print("{}: [ch{:01x}] program change {:02x} -> {:02x}\n", m_time, channel, m_programs[channel], program);
     m_seq_ptr += 1;
@@ -133,7 +143,6 @@ void midi_handler::meta_event()
 {
     fmt::print("{}: meta event {:02x}\n", m_time, *m_seq_ptr);
     size_t len = m_seq_ptr[1];
-    fmt::print("len {}\n", len);
 
     if (*m_seq_ptr == 0x2f) {
         fmt::print("End of track!\n");

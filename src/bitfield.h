@@ -4,7 +4,7 @@
 
 /* Bitfield convenience class for use with unions
  * should be allowed as per common initial subsequence rule regarding unions */
-template <typename sourcetype, typename type, int width, int pos>
+template <typename sourcetype, typename type, int pos, int width>
 class bitfield {
   public:
     constexpr type get() {

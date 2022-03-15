@@ -10,6 +10,7 @@ sources = files([
     'src/midi.cpp',
     'src/synth.cpp',
     'src/voice.cpp',
+    'src/envelope.cpp',
 ])
 
 executable('musplay', sources, dependencies : [sdl, fmt, threads])

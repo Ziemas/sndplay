@@ -8,7 +8,32 @@
 
 class voice {
 public:
+    voice(u16* sample)
+        : m_sample(sample)
+    {
+    }
     s16_output run();
+
+    void key_on();
+    void key_off();
+
+    void set_pitch(u16 reg)
+    {
+        m_Pitch = reg;
+    }
+    void set_asdr1(u16 reg)
+    {
+        m_ADSR.m_Reg.lo.set(reg);
+    }
+    void set_asdr2(u16 reg)
+    {
+        m_ADSR.m_Reg.hi.set(reg);
+    }
+    void set_volume(u16 left, u16 right)
+    {
+        m_Volume.left.Set(left);
+        m_Volume.right.Set(right);
+    }
 
 private:
     union ADPCMHeader {
@@ -38,7 +63,7 @@ private:
     s16 m_Out { 0 };
 
     u16* m_sample { nullptr };
-    u32 m_SSA { 0 };
+    //u32 m_SSA { 0 }; probably don't need
     u32 m_NAX { 0 };
     u32 m_LSA { 0 };
     bool m_CustomLoop { false };

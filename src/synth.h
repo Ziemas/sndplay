@@ -31,6 +31,54 @@ struct ProgData {
     /*   4 */ /*Tone**/ u32 FirstTone;
 };
 
+struct basic_data {
+    /*   0 */ u32 pad1;
+};
+
+struct midi_data {
+    /*   0 */ s8 MidiChannel;
+    /*   1 */ u8 KeyOnVelocity;
+    /*   2 */ s16 pad2;
+    /*   4 */ s32 ShouldBeOff;
+    /*   8 */ u32 KeyOnProg;
+};
+
+struct block_data {
+    /*   0 */ s8 g_vol;
+    /*   1 */ s8 pad;
+    /*   2 */ s16 g_pan;
+};
+
+union ownerdata_tag {
+    /*   0 */ basic_data BasicData;
+    /*   0 */ midi_data MIDIData;
+    /*   0 */ block_data BlockData;
+};
+
+struct SpuVolume {
+    /*   0 */ s16 left;
+    /*   2 */ s16 right;
+};
+
+struct VoiceAttributes {
+    /*   0 */ u32 playlist;
+    /*   4 */ s32 voice;
+    /*   8 */ u32 Status;
+    /*   c */ u32 Owner;
+    /*  10 */ u32 OwnerProc;
+    /*  14 */ u32 Tone;
+    /*  18 */ s8 StartNote;
+    /*  19 */ s8 StartFine;
+    /*  1a */ u8 Priority;
+    /*  1b */ s8 VolGroup;
+    /*  1c */ u32 StartTick;
+    /*  20 */ SpuVolume Volume;
+    /*  24 */ s16 Current_PB;
+    /*  26 */ s16 Current_PM;
+    /*  28 */ u32 Flags;
+    /*  2c */ ownerdata_tag OwnerData;
+};
+
 struct Prog {
     ProgData d;
     std::vector<Tone> tones;
@@ -43,12 +91,13 @@ public:
     }
 
     s16_output tick();
-    void key_on(Tone& tone, u8 channel, u8 note, u8 velocity);
+    void key_on(Tone& tone, u8 channel, u8 note, u8 velocity, u8 vol, s16 pan);
     void key_off(Tone& tone, u8 channel, u8 note, u8 velocity);
 
     void load_samples(u32 bank, std::unique_ptr<u8[]>);
 
 private:
-    std::unordered_map<u32, std::unique_ptr<u8[]>> m_bank_samples;
+    std::unique_ptr<u8[]> m_tmp_samples;
+    // std::unordered_map<u32, std::unique_ptr<u8[]>> m_bank_samples;
     std::forward_list<std::unique_ptr<voice>> m_voices;
 };
