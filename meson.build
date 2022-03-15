@@ -13,4 +13,4 @@ sources = files([
     'src/envelope.cpp',
 ])
 
-executable('musplay', sources, dependencies : [sdl, fmt, threads])
+executable('sndplay', sources, dependencies : [sdl, fmt, threads])
