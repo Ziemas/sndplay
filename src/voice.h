@@ -19,6 +19,11 @@ public:
     void key_on();
     void key_off();
 
+    bool dead()
+    {
+        return m_ADSR.GetPhase() == ADSR::Phase::Stopped;
+    }
+
     void set_pitch(u16 reg)
     {
         m_Pitch = reg;

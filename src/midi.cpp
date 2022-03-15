@@ -102,7 +102,7 @@ void midi_handler::note_on()
     for (auto& t : program.tones) {
         if (note >= t.MapLow && note <= t.MapHigh) {
             tones++;
-            m_synth.key_on(t, channel, velocity, note, program.d.Vol, program.d.Pan);
+            m_synth.key_on(t, channel, note, velocity, program.d.Vol, program.d.Pan);
         }
     }
 
