@@ -1,7 +1,6 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #include "midi.h"
-#include "musplay.h"
 #include <SDL.h>
 #include <fmt/format.h>
 #include <pthread.h>
