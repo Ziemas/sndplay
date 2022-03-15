@@ -114,6 +114,7 @@ u32 snd_player::load_bank(std::filesystem::path path)
                 Tone tone;
                 in.read((char*)&tone, sizeof(tone));
                 prog.tones.emplace_back(tone);
+                fmt::print("tone {} vaginsr {:x}\n", i, tone.VAGInSR);
             }
         }
     }
@@ -126,6 +127,8 @@ u32 snd_player::load_bank(std::filesystem::path path)
         in.read((char*)samples.get(), attr.where[1].size);
         m_synth.load_samples(bank.d.BankID, std::move(samples));
     }
+
+    fmt::print("vaginsr {:x}\n", bank.d.VagsInSR);
 
     if (attr.num_chunks >= 3) {
         in.seekg(attr.where[2].offset, std::fstream::beg);

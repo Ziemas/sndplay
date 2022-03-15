@@ -87,10 +87,13 @@ void midi_handler::note_on()
     u8 note = m_seq_ptr[0];
     u8 velocity = m_seq_ptr[1];
 
+    if (velocity == 0) {
+        note_off();
+    }
+
     fmt::print("{}: [ch{:01x}] note on {:02x} {:02x}\n", m_time, channel, note, velocity);
 
     int tones = 0;
-
 
     // Key on all the applicable tones for the program
     auto& bank = m_locator.get_bank(m_header->BankID);
@@ -110,7 +113,13 @@ void midi_handler::note_on()
 
 void midi_handler::note_off()
 {
+    u8 channel = m_status & 0xf;
+    u8 note = m_seq_ptr[0];
+    u8 velocity = m_seq_ptr[1];
+
     fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+
+    m_synth.key_off(channel, note, velocity);
     m_seq_ptr += 2;
 }
 

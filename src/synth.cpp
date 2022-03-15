@@ -79,7 +79,8 @@ static u16 sceSdNote2Pitch(u16 center_note, u16 center_fine, u16 note, short fin
     return (u16)ret;
 }
 
-static u16 PS1Note2Pitch(char old_center, char old_fine, short new_center, short new_fine) {
+static u16 PS1Note2Pitch(char old_center, char old_fine, short new_center, short new_fine)
+{
     if (-1 >= old_center) {
         old_center = -old_center;
     }
@@ -122,14 +123,15 @@ static std::pair<s32, s32> make_volume(int current_vol, int new_vol, int pan, in
 
 void synth::key_on(Tone& tone, u8 channel, u8 note, u8 velocity, u8 vol, s16 pan)
 {
-    auto v = std::make_unique<voice>((u16*)(m_tmp_samples.get() + tone.VAGInSR));
+    auto v = std::make_unique<voice>((u16*)(m_tmp_samples.get() + tone.VAGInSR), channel);
 
     auto volume = make_volume(0x7f, velocity, pan, vol, 0, tone.Vol, tone.Pan);
 
     v->set_volume(volume.first, volume.second);
 
     // TODO pb/pm function
-    auto pitch = PS1Note2Pitch(tone.CenterNote, tone.CenterFine, tone.CenterNote, tone.CenterFine);
+    // auto pitch = PS1Note2Pitch(tone.CenterNote, tone.CenterFine, tone.CenterNote, tone.CenterFine);
+    auto pitch = sceSdNote2Pitch(tone.CenterNote, tone.CenterFine, tone.CenterNote, tone.CenterFine);
     v->set_pitch(pitch);
     v->set_asdr1(tone.ADSR1);
     v->set_asdr1(tone.ADSR2);
@@ -137,6 +139,15 @@ void synth::key_on(Tone& tone, u8 channel, u8 note, u8 velocity, u8 vol, s16 pan
     m_voices.emplace_front(std::move(v));
 }
 
-void synth::key_off(Tone& tone, u8 channel, u8 note, u8 velocity)
+void synth::key_off(u8 channel, u8 note, u8 velocity)
 {
+    auto before = m_voices.begin();
+    for (auto i = m_voices.begin(); i != m_voices.end();) {
+        if (i->get()->m_channel == channel) {
+            i = m_voices.erase_after(before);
+        } else {
+            before = i;
+            ++i;
+        }
+    }
 }

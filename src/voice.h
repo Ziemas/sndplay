@@ -8,10 +8,12 @@
 
 class voice {
 public:
-    voice(u16* sample)
-        : m_sample(sample)
+    voice(u16* sample, u8 channel)
+        : m_channel(channel)
+        , m_sample(sample)
     {
     }
+    u8 m_channel;
     s16_output run();
 
     void key_on();
@@ -63,7 +65,7 @@ private:
     s16 m_Out { 0 };
 
     u16* m_sample { nullptr };
-    //u32 m_SSA { 0 }; probably don't need
+    // u32 m_SSA { 0 }; probably don't need
     u32 m_NAX { 0 };
     u32 m_LSA { 0 };
     bool m_CustomLoop { false };
