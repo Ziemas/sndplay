@@ -79,20 +79,22 @@ static u16 sceSdNote2Pitch(u16 center_note, u16 center_fine, u16 note, short fin
     return (u16)ret;
 }
 
-static u16 PS1Note2Pitch(char old_center, char old_fine, short new_center, short new_fine)
+static u16 PS1Note2Pitch(s8 center_note, s8 center_fine, short note, short fine)
 {
     bool thing = false;
-    if (old_center >= 0) {
+    if (center_note >= 0) {
         thing = true;
     } else {
         thing = false;
-        old_center = -old_center;
+        center_note = -center_note;
     }
 
-    auto pitch = sceSdNote2Pitch(old_center, old_fine, new_center, new_fine);
+    auto pitch = sceSdNote2Pitch(center_note, center_fine, note, fine);
     if (thing) {
         pitch = 44100 * pitch / 48000;
     }
+
+    fmt::print("center_note {}, center_fine {}, note {}, fine {} -> pitch {:04x}\n", center_note, center_fine, note, fine, pitch);
 
     //if (-1 >= old_center) {
     //    old_center = -old_center;

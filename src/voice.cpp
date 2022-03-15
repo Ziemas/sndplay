@@ -3,6 +3,7 @@
 #include "voice.h"
 #include "types.h"
 #include <array>
+#include <fmt/format.h>
 
 #include "interp_table.inc"
 
@@ -97,11 +98,12 @@ void voice::key_on()
     m_DecodeBuf.Reset();
     m_CustomLoop = false;
     //Console.WriteLn("SPU[%d]:VOICE[%d] Key On, SSA %08x", m_SPU.m_Id, m_Id, m_SSA);
+    //fmt::print("channel[{:x}] Key On\n", m_channel);
 }
 void voice::key_off()
 {
     m_ADSR.Release();
-    //Console.WriteLn("SPU[%d]:VOICE[%d] Key Off", m_SPU.m_Id, m_Id);
+    //fmt::print("channel[{:x}] Key Off\n", m_channel);
 }
 
 s16_output voice::run()

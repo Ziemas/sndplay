@@ -5,6 +5,7 @@
 #include "envelope.h"
 #include "fifo.h"
 #include "types.h"
+#include <fmt/core.h>
 
 class voice {
 public:
@@ -26,18 +27,23 @@ public:
 
     void set_pitch(u16 reg)
     {
+        //fmt::print("VOICE[{}] PITCH WRITE {:x}\n", m_channel, reg);
         m_Pitch = reg;
     }
     void set_asdr1(u16 reg)
     {
+        //fmt::print("VOICE[{}] ADSR1 WRITE {:x}\n", m_channel, reg);
         m_ADSR.m_Reg.lo.set(reg);
     }
     void set_asdr2(u16 reg)
     {
+        //fmt::print("VOICE[{}] ADSR2 WRITE {:x}\n", m_channel, reg);
         m_ADSR.m_Reg.hi.set(reg);
     }
     void set_volume(u16 left, u16 right)
     {
+        //fmt::print("VOICE[{}] VOLL WRITE {:x}\n", m_channel, left);
+        //fmt::print("VOICE[{}] VOLR WRITE {:x}\n", m_channel, left);
         m_Volume.left.Set(left);
         m_Volume.right.Set(right);
     }

@@ -45,11 +45,17 @@ void snd_player::sdl_callback(void* userdata, u8* stream, int len)
 
 void snd_player::tick(s16_output* stream, int samples)
 {
+    static int htick = 200;
     std::scoped_lock lock(m_ticklock);
     for (int i = 0; i < samples; i++) {
-        for (auto& handler : m_handlers) {
-            handler.get()->tick();
+        if (htick == 200) {
+            for (auto& handler : m_handlers) {
+                handler.get()->tick();
+            }
+
+            htick = 0;
         }
+        htick++;
 
         *stream++ = m_synth.tick();
     }
@@ -186,7 +192,7 @@ void snd_player::play_sound(u32 bank_id, u32 sound_id)
     }
 }
 
-
-SoundBank& snd_player::get_bank(u32 id) {
+SoundBank& snd_player::get_bank(u32 id)
+{
     return m_soundbanks.at(id);
 }

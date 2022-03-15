@@ -7,6 +7,11 @@
 #include <memory>
 #include <unordered_map>
 
+enum class toneflag : u16 {
+    out_reverb = 1,
+    out_dry = 0x10,
+};
+
 struct Tone {
     /*   0 */ s8 Priority;
     /*   1 */ s8 Vol;

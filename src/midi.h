@@ -53,9 +53,10 @@ public:
     void tick() override;
 
 private:
-    static constexpr int tickrate = 48000;
-    //static constexpr int tickrate = 240;
-    static constexpr int mics_per_tick = (100000000 / tickrate) / 2 ;
+    //static constexpr int tickrate = 48000;
+    static constexpr int tickrate = 240;
+    static constexpr int mics_per_tick = 1000000 / tickrate;
+    //static constexpr int mics_per_tick = 100000000 / tickrate;
     struct midi_error : public std::exception {
         midi_error(std::string text)
             : msg(std::move(text))
