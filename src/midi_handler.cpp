@@ -90,7 +90,7 @@ void midi_handler::mute_channel(u8 channel)
 
 void midi_handler::unmute_channel(u8 channel)
 {
-    fmt::print("{:x} ame unmuting channel {}\n", (u64)this,channel);
+    fmt::print("{:x} ame unmuting channel {}\n", (u64)this, channel);
     m_mute_state[channel] = false;
 }
 
@@ -106,12 +106,11 @@ void midi_handler::note_on()
     }
 
     if (m_mute_state[channel]) {
-        fmt::print("tried to play muted channel {}\n", channel);
         m_seq_ptr += 2;
         return;
     }
 
-    fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
+    //fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
 
     // Key on all the applicable tones for the program
     auto& bank = m_locator.get_bank(m_header->BankID);
@@ -151,7 +150,7 @@ void midi_handler::program_change()
 
     m_programs[channel] = program;
 
-    fmt::print("{:x} {}: [ch{:01x}] program change {:02x} -> {:02x}\n", (u64)this, m_time, channel, m_programs[channel], program);
+    //fmt::print("{:x} {}: [ch{:01x}] program change {:02x} -> {:02x}\n", (u64)this, m_time, channel, m_programs[channel], program);
     m_seq_ptr += 1;
 }
 
@@ -201,7 +200,7 @@ void midi_handler::meta_event()
 
 void midi_handler::system_event()
 {
-    //fmt::print("{}: system event {:02x}\n", m_time, *m_seq_ptr);
+    // fmt::print("{}: system event {:02x}\n", m_time, *m_seq_ptr);
 
     switch (*m_seq_ptr) {
     case 0x75:
@@ -209,6 +208,7 @@ void midi_handler::system_event()
         if (m_parent.has_value()) {
             auto [cont, ptr] = m_parent.value()->run_ame(*this, m_seq_ptr);
             m_seq_ptr = ptr;
+
             if (!cont) {
                 fmt::print("track stopped by ame\n");
                 m_track_complete = true;

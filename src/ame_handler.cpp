@@ -21,7 +21,7 @@ bool ame_handler::tick()
         m->tick();
     }
 
-    m_midis.remove_if([](std::unique_ptr<midi_handler> &m){ return m->complete(); });
+    m_midis.remove_if([](std::unique_ptr<midi_handler>& m) { return m->complete(); });
 
     return false;
 };
@@ -35,20 +35,9 @@ void ame_handler::start_segment(u32 id)
 
 void ame_handler::stop_segment(u32 id)
 {
+    fmt::print("stopping segment {}\n", id);
 }
 
-//#define AME_BEGIN(op)                      \
-//    fmt::print("ame trace: {:x}\n", (op)); \
-//    if (flag == 0) {                       \
-//        do {
-//
-//#define AME_END(x) \
-//    }              \
-//    while (0)      \
-//        ;          \
-//    }              \
-//    else {}        \
-//    stream += (x);
 #define AME_BEGIN(op)                      \
     fmt::print("ame trace: {:x}\n", (op)); \
     if (flag) {                            \
@@ -156,13 +145,6 @@ std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
                 if (flag == 1)
                     flag = 0;
             } else {
-                fmt::print("\n");
-
-                for (int i = -2; i < 20 ;i++) {
-                    fmt::print("{:02x} ", stream[i]);
-                }
-                fmt::print("\n");
-
                 auto group = *stream++;
                 fmt::print("getting groupinfo for {}\n", group);
                 m_groups[group].basis = *stream++;
@@ -183,16 +165,16 @@ std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
         case 0x10: {
             AME_BEGIN(op)
             u8 group = stream[0];
-            fmt::print("setting group {}\n", group);
+            //fmt::print("setting group {}\n", group);
             u8 comp = 0;
             if (m_groups[group].basis == 0) {
                 comp = m_excite;
             } else {
                 comp = m_register[m_groups[group].basis - 1];
-                fmt::print("reg[{}] {}\n", m_groups[group].basis - 1, comp);
+                //fmt::print("reg[{}] {}\n", m_groups[group].basis - 1, comp);
             }
             for (int i = 0; i < m_groups[group].num_channels; i++) {
-                fmt::print("channel setup {} min{} cmp{} max{}\n", i, m_groups[group].excite_min[i], comp, m_groups[group].excite_max[i]);
+                //fmt::print("channel setup {} min{} cmp{} max{}\n", i, m_groups[group].excite_min[i], comp, m_groups[group].excite_max[i]);
                 if ((m_groups[group].excite_min[i] - 1 >= comp) || (m_groups[group].excite_max[i] + 1 <= comp)) {
                     midi.mute_channel(m_groups[group].channel[i]);
                 } else {
@@ -246,6 +228,7 @@ std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
 
         if (*stream == 0xf7) {
             fmt::print("ame done\n");
+            stream++;
             done = true;
         }
     }

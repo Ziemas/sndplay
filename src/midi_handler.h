@@ -59,6 +59,10 @@ public:
         m_seq_ptr = m_seq_data_start;
         m_tempo = block->Tempo;
         m_ppq = block->PPQ;
+
+        fmt::print("added new midi handler {:x}\n", (u64)this);
+        fmt::print("tempo:{:x} ppq:{} repeats:{} \n", m_tempo, m_ppq, repeats);
+
     };
 
     void start();
@@ -96,7 +100,7 @@ private:
 
     MIDIBlockHeader* m_header { nullptr };
 
-    std::array<bool, 0xf> m_mute_state { false };
+    std::array<bool, 0xf> m_mute_state {};
     u8* m_sample_data { nullptr };
 
     u8* m_seq_data_start { nullptr };
