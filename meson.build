@@ -11,6 +11,7 @@ sources = files([
     'src/synth.cpp',
     'src/voice.cpp',
     'src/envelope.cpp',
+    'src/util.cpp',
 ])
 
 executable('sndplay', sources, dependencies : [sdl, fmt, threads])

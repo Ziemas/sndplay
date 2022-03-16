@@ -96,7 +96,7 @@ public:
     }
 
     s16_output tick();
-    void key_on(Tone& tone, u8 channel, u8 note, u8 velocity, u8 vol, s16 pan);
+    void key_on(Tone& tone, u8 channel, u8 note, vol_pair volume);
     void key_off(u8 channel, u8 note, u8 velocity);
 
     void load_samples(u32 bank, std::unique_ptr<u8[]>);

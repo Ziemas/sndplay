@@ -78,6 +78,7 @@ public:
 };
 
 struct MIDIBlockHeader;
+
 class snd_player : public locator {
 public:
     snd_player();
@@ -104,6 +105,8 @@ private:
     std::vector<SoundBank> m_soundblocks;
     std::vector<std::unique_ptr<u8[]>> m_midi_chunks;
     std::unordered_map<u32, MIDIBlockHeader*> m_midi;
+
+    void play_midi(MIDISound& sound, s32 vol, s32 pan);
 
     synth m_synth;
 

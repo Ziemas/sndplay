@@ -45,9 +45,11 @@ void snd_player::sdl_callback(void* userdata, u8* stream, int len)
 
 void snd_player::tick(s16_output* stream, int samples)
 {
-    static int htick = 200;
     std::scoped_lock lock(m_ticklock);
+    static int htick = 200;
     for (int i = 0; i < samples; i++) {
+        // The handlers expect to tick at 240hz
+        // 48000/240 = 200
         if (htick == 200) {
             for (auto& handler : m_handlers) {
                 handler.get()->tick();
@@ -166,6 +168,12 @@ void snd_player::load_midi(std::fstream& in)
     m_midi_chunks.emplace_back(std::move(midi));
 }
 
+void snd_player::play_midi(MIDISound& sound, s32 vol, s32 pan)
+{
+    auto header = m_midi.at(sound.MIDIID);
+    m_handlers.emplace_front(std::make_unique<midi_handler>(header, m_synth, (sound.Vol * vol) >> 10, sound.Pan, *this));
+}
+
 void snd_player::play_sound(u32 bank_id, u32 sound_id)
 {
     std::scoped_lock lock(m_ticklock);
@@ -177,8 +185,7 @@ void snd_player::play_sound(u32 bank_id, u32 sound_id)
 
         switch (sound.Type) {
         case 4: { // normal MIDI
-            auto header = m_midi.at(sound.MIDIID);
-            m_handlers.emplace_front(std::make_unique<midi_handler>(header, m_synth, *this));
+            play_midi(sound, 0x400, 0);
         } break;
         case 5: // AME
         default:

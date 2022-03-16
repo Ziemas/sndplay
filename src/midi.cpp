@@ -1,6 +1,7 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #include "midi.h"
+#include "util.h"
 #include <SDL.h>
 #include <fmt/format.h>
 #include <pthread.h>
@@ -91,9 +92,7 @@ void midi_handler::note_on()
         return;
     }
 
-    //fmt::print("{}: [ch{:01x}] note on {:02x} {:02x}\n", m_time, channel, note, velocity);
-
-    int tones = 0;
+    // fmt::print("{}: [ch{:01x}] note on {:02x} {:02x}\n", m_time, channel, note, velocity);
 
     // Key on all the applicable tones for the program
     auto& bank = m_locator.get_bank(m_header->BankID);
@@ -101,12 +100,13 @@ void midi_handler::note_on()
 
     for (auto& t : program.tones) {
         if (note >= t.MapLow && note <= t.MapHigh) {
-            tones++;
-            m_synth.key_on(t, channel, note, velocity, program.d.Vol, program.d.Pan);
+
+            // TODO passing m_pan here makes stuff sound bad, why?
+            auto volume = make_volume(m_vol, velocity, 0, program.d.Vol, program.d.Pan, t.Vol, t.Pan);
+
+            m_synth.key_on(t, channel, note, volume);
         }
     }
-
-    // fmt::print("  {} tone(s) to play for note {} in progam {}\n", tones, note, m_programs[channel]);
 
     m_seq_ptr += 2;
 }
@@ -117,7 +117,7 @@ void midi_handler::note_off()
     u8 note = m_seq_ptr[0];
     u8 velocity = m_seq_ptr[1];
 
-    //fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+    // fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
 
     m_synth.key_off(channel, note, velocity);
     m_seq_ptr += 2;
@@ -216,19 +216,19 @@ void midi_handler::new_delta(bool reset)
     m_seq_ptr += len;
     m_time += delta;
     u32 mics_per_ppqn = m_tempo / m_ppq;
-    //fmt::print("mics_per_tick {:x}\n", mics_per_tick);
-    //fmt::print("mics_per_ppqn {:x}\n", mics_per_ppqn);
+    // fmt::print("mics_per_tick {:x}\n", mics_per_tick);
+    // fmt::print("mics_per_ppqn {:x}\n", mics_per_ppqn);
 
     if (reset)
         m_ppt = mics_per_tick / mics_per_ppqn;
 
-    //fmt::print("ppt {:x}\n", m_ppt);
+    // fmt::print("ppt {:x}\n", m_ppt);
 
     m_tickdelta = delta + m_tickerror;
 
-    //m_tick_countdown = (m_tickdelta * mics_per_ppqn) / mics_per_tick;
+    // m_tick_countdown = (m_tickdelta * mics_per_ppqn) / mics_per_tick;
     m_tick_countdown = (m_tickdelta * mics_per_ppqn) / mics_per_tick;
-    //fmt::print("delta {} countdown {:x}\n", m_tickdelta, m_tick_countdown);
+    // fmt::print("delta {} countdown {:x}\n", m_tickdelta, m_tick_countdown);
 
     // m_tickdelta = 100 * delta + m_tickerror;
     // m_tick_countdown = (m_tickdelta / 100 * m_tempo / m_ppq - 1 + mics_per_tick) / mics_per_tick;

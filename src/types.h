@@ -23,7 +23,13 @@ public:
     virtual SoundBank& get_bank(u32 id) = 0;
 };
 
+
 #pragma pack(push, 1)
+struct vol_pair {
+    s16 left;
+    s16 right;
+};
+
 struct s16_output {
     s16 left { 0 }, right { 0 };
 

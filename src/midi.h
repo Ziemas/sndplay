@@ -38,8 +38,10 @@ struct MultiMIDIBlockHeader {
 
 class midi_handler : public sound_handler {
 public:
-    midi_handler(MIDIBlockHeader* block, synth& synth, locator& loc)
+    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, locator& loc)
         : m_locator(loc)
+        , m_vol(vol)
+        , m_pan(pan)
         , m_header(block)
         , m_synth(synth)
     {
@@ -53,10 +55,8 @@ public:
     void tick() override;
 
 private:
-    //static constexpr int tickrate = 48000;
     static constexpr int tickrate = 240;
     static constexpr int mics_per_tick = 1000000 / tickrate;
-    //static constexpr int mics_per_tick = 100000000 / tickrate;
     struct midi_error : public std::exception {
         midi_error(std::string text)
             : msg(std::move(text))
@@ -108,6 +108,8 @@ private:
     };
 
     locator& m_locator;
+    s32 m_vol { 0 };
+    s32 m_pan { 0 };
 
     MIDIBlockHeader* m_header { nullptr };
 
