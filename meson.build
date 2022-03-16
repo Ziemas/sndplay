@@ -7,7 +7,8 @@ threads = dependency('threads')
 sources = files([
     'src/sndplay.cpp',
     'src/player.cpp',
-    'src/midi.cpp',
+    'src/midi_handler.cpp',
+    'src/ame_handler.cpp',
     'src/synth.cpp',
     'src/voice.cpp',
     'src/envelope.cpp',

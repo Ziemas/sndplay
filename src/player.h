@@ -1,7 +1,8 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #pragma once
-#include "midi.h"
+#include "midi_handler.h"
+#include "ame_handler.h"
 #include "sound_handler.h"
 #include "synth.h"
 #include "types.h"
@@ -70,11 +71,6 @@ struct SoundBank {
     std::vector<Prog> programs;
     std::vector<MIDISound> sounds;
     std::unique_ptr<u8[]> sampleBuf;
-};
-
-class ame_sound_handler : public sound_handler {
-public:
-    bool tick() override { return true; };
 };
 
 struct MIDIBlockHeader;
