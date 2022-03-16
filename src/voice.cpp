@@ -85,9 +85,10 @@ static s16 ApplyVolume(s16 sample, s32 volume)
 
 void voice::key_on()
 {
-    UpdateBlockHeader();
     m_NAX = 0;
     m_NAX++;
+
+    UpdateBlockHeader();
 
     m_ENDX = false;
     m_ADSR.Attack();
