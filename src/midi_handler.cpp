@@ -1,6 +1,7 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #include "midi_handler.h"
+#include "ame_handler.h"
 #include "util.h"
 #include <SDL.h>
 #include <fmt/format.h>
@@ -181,13 +182,10 @@ void midi_handler::system_event()
     switch (*m_seq_ptr) {
     case 0x75:
         m_seq_ptr++;
-        //run_ame(m_seq_ptr);
-        fmt::print("left ame\n");
-        for (int i = 0; i < 10; i++) {
-            fmt::print("{:x} ", m_seq_ptr[i]);
+        if (m_parent.has_value()) {
+            m_parent.value()->run_ame(*this, m_seq_ptr);
         }
-        fmt::print("\n");
-
+        fmt::print("left ame\n");
         break;
     default:
         throw midi_error(fmt::format("Unknown system message {:02x}", *m_seq_ptr));

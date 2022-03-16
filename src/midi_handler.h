@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: ISC
 #pragma once
 #include "SDL_audio.h"
+#include "ame_handler.h"
 #include "player.h"
 #include "sound_handler.h"
 #include "synth.h"
 #include "types.h"
 #include "voice.h"
 #include <exception>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -36,10 +38,27 @@ struct MultiMIDIBlockHeader {
     /*  10 */ /*s8**/ u32 BlockPtr[1];
 };
 
+class ame_handler;
+
 class midi_handler : public sound_handler {
 public:
     midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, locator& loc)
         : m_locator(loc)
+        , m_vol(vol)
+        , m_pan(pan)
+        , m_repeats(repeats)
+        , m_header(block)
+        , m_synth(synth)
+    {
+        m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
+        m_seq_ptr = m_seq_data_start;
+        m_tempo = block->Tempo;
+        m_ppq = block->PPQ;
+    };
+
+    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, locator& loc, ame_handler* parent)
+        : m_parent(parent)
+        , m_locator(loc)
         , m_vol(vol)
         , m_pan(pan)
         , m_repeats(repeats)
@@ -73,6 +92,8 @@ private:
             return msg.c_str();
         }
     };
+
+    std::optional<ame_handler*> m_parent;
 
     locator& m_locator;
     s32 m_vol { 0 };
