@@ -2,7 +2,39 @@
 // SPDX-License-Identifier: ISC
 #include "ame_handler.h"
 
-bool tick() { return true; };
+ame_handler::ame_handler(MultiMIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, locator& loc)
+    : m_header(block)
+    , m_locator(loc)
+    , m_synth(synth)
+    , m_vol(vol)
+    , m_pan(pan)
+    , m_repeats(repeats)
+{
+    auto firstblock = (MIDIBlockHeader*)(block->BlockPtr[0] + (uintptr_t)block);
+
+    m_midis.emplace_front(std::make_unique<midi_handler>(firstblock, synth, vol, pan, repeats, loc, this));
+};
+
+bool ame_handler::tick()
+{
+    for (auto& m : m_midis) {
+        m->tick();
+    }
+
+    // TODO
+    return false;
+};
+
+void ame_handler::start_segment(u32 id)
+{
+    auto midiblock = (MIDIBlockHeader*)(m_header->BlockPtr[id] + (uintptr_t)m_header);
+    fmt::print("starting segment {}\n", id);
+    m_midis.emplace_front(std::make_unique<midi_handler>(midiblock, m_synth, m_vol, m_pan, m_repeats, m_locator, this));
+}
+
+void ame_handler::stop_segment(u32 id)
+{
+}
 
 #define AME_OP(op, body, argc)              \
     case ame_op::op: {                      \
@@ -13,7 +45,9 @@ bool tick() { return true; };
 
 #define AME_COND(x)      \
     if (flag == 0) {     \
-        x;               \
+        do {             \
+            x;           \
+        } while (0);     \
     } else {             \
         if (flag == 1) { \
             flag = 0;    \
@@ -21,9 +55,10 @@ bool tick() { return true; };
     }
 #define AME_CMP(x) AME_COND(if (x) { flag = 1; })
 
-u8* ame_handler::run_ame(midi_handler& midi, u8* stream)
+std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
 {
     bool done = false;
+    bool cont = true;
 
     // don't really understand this yet
     int flag = 0;
@@ -40,8 +75,9 @@ u8* ame_handler::run_ame(midi_handler& midi, u8* stream)
             AME_OP(store_macro, m_macro[*stream] = stream; for (; *stream != 0xf7; stream++);, 1)
             AME_OP(cond_run_macro, AME_COND(run_ame(midi, m_macro[stream[0]])), 1)
             AME_OP(cond_set_reg, AME_COND(m_register[stream[0]] = stream[1]), 2)
-            AME_OP(cond_start_segment, AME_COND(/*TODO*/), 1)
-            AME_OP(cond_stop_and_start, AME_COND(/*TODO*/), 1)
+            AME_OP(cond_start_segment, AME_COND(start_segment(stream[0])), 1)
+            AME_OP(cond_stop_and_start, AME_COND(start_segment(stream[0]); cont = false;), 1)
+            AME_OP(thing, AME_COND(/*TODO*/), 1)
         case ame_op::read_group_data: { // read in new group data
             if (!flag) {
                 u8 group = *stream++;
@@ -74,7 +110,7 @@ u8* ame_handler::run_ame(midi_handler& midi, u8* stream)
         }
     }
 
-    return stream;
+    return { cont, stream };
 }
 
 #undef AME_CMP

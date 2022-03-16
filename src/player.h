@@ -103,6 +103,7 @@ private:
     std::unordered_map<u32, MIDIBlockHeader*> m_midi;
 
     void play_midi(MIDISound& sound, s32 vol, s32 pan);
+    void play_ame(MIDISound& sound, s32 vol, s32 pan);
 
     synth m_synth;
 

@@ -3,15 +3,28 @@
 #pragma once
 #include "midi_handler.h"
 #include "sound_handler.h"
+#include "synth.h"
 #include "types.h"
 #include <array>
+#include <forward_list>
+
+struct MultiMIDIBlockHeader {
+    /*   0 */ u32 DataID;
+    /*   4 */ s16 Version;
+    /*   6 */ s8 Flags;
+    /*   7 */ s8 NumMIDIBlocks;
+    /*   8 */ u32 ID;
+    /*   c */ /*void**/ u32 NextMIDIBlock;
+    /*  10 */ /*s8**/ u32 BlockPtr[1];
+};
 
 class midi_handler;
 class ame_handler : public sound_handler {
 public:
+    ame_handler(MultiMIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, locator& loc);
     bool tick() override;
 
-    u8* run_ame(midi_handler&, u8* stream);
+    std::pair<bool, u8*> run_ame(midi_handler&, u8* stream);
 
 private:
     struct ame_error : public std::exception {
@@ -58,13 +71,24 @@ private:
 
         cond_run_macro = 0xc,
         read_group_data = 0xf,
+        thing = 0x10,
         cond_stop_and_start = 0x11,
         cond_start_segment = 0x12,
         cond_set_reg = 0x13,
 
     };
 
-    std::forward_list<midi_handler> m_midis;
+    void start_segment(u32 id);
+    void stop_segment(u32 id);
+
+    MultiMIDIBlockHeader* m_header { nullptr };
+    locator& m_locator;
+    synth& m_synth;
+    s32 m_vol { 0 };
+    s32 m_pan { 0 };
+    s8 m_repeats { 0 };
+
+    std::forward_list<std::unique_ptr<midi_handler>> m_midis;
 
     u8 m_excite { 0 };
     std::array<GroupDescription, 16> m_groups {};

@@ -35,9 +35,9 @@ static std::pair<s16, s16> pitchbend(Tone& tone, int current_pb, int current_pm,
     return { v7 / 128, v7 % 128 };
 }
 
-void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume)
+void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner)
 {
-    auto v = std::make_unique<voice>((u16*)(m_tmp_samples.get() + tone.VAGInSR), channel);
+    auto v = std::make_unique<voice>((u16*)(m_tmp_samples.get() + tone.VAGInSR), channel, owner);
 
     v->set_volume(volume.left >> 1, volume.right >> 1);
 
@@ -52,10 +52,10 @@ void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume)
     m_voices.emplace_front(std::move(v));
 }
 
-void synth::key_off(u8 channel, u8 note, u8 velocity)
+void synth::key_off(u8 channel, u8 note, u64 owner)
 {
     for (auto& v : m_voices) {
-        if (v->m_channel == channel) {
+        if (v->m_channel == channel && v->m_owner == owner) {
             v->key_off();
         }
     }

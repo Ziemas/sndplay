@@ -9,12 +9,15 @@
 
 class voice {
 public:
-    voice(u16* sample, u8 channel)
+    voice(u16* sample, u8 channel, u64 owner)
         : m_channel(channel)
+        , m_owner(owner)
         , m_sample(sample)
     {
     }
+
     u8 m_channel;
+    u64 m_owner;
     s16_output run();
 
     void key_on();
@@ -27,23 +30,23 @@ public:
 
     void set_pitch(u16 reg)
     {
-        //fmt::print("VOICE[{}] PITCH WRITE {:x}\n", m_channel, reg);
+        // fmt::print("VOICE[{}] PITCH WRITE {:x}\n", m_channel, reg);
         m_Pitch = reg;
     }
     void set_asdr1(u16 reg)
     {
-        //fmt::print("VOICE[{}] ADSR1 WRITE {:x}\n", m_channel, reg);
+        // fmt::print("VOICE[{}] ADSR1 WRITE {:x}\n", m_channel, reg);
         m_ADSR.m_Reg.lo.set(reg);
     }
     void set_asdr2(u16 reg)
     {
-        //fmt::print("VOICE[{}] ADSR2 WRITE {:x}\n", m_channel, reg);
+        // fmt::print("VOICE[{}] ADSR2 WRITE {:x}\n", m_channel, reg);
         m_ADSR.m_Reg.hi.set(reg);
     }
     void set_volume(u16 left, u16 right)
     {
-        fmt::print("VOICE[{}] VOLL WRITE {:x}\n", m_channel, left);
-        fmt::print("VOICE[{}] VOLR WRITE {:x}\n", m_channel, right);
+        // fmt::print("VOICE[{}] VOLL WRITE {:x}\n", m_channel, left);
+        // fmt::print("VOICE[{}] VOLR WRITE {:x}\n", m_channel, right);
         m_Volume.left.Set(left);
         m_Volume.right.Set(right);
     }

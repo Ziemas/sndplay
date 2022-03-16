@@ -55,7 +55,7 @@ void snd_player::tick(s16_output* stream, int samples)
                 bool done = handler.get()->tick();
 
                 // clean up handlers here
-                //if (done) {
+                // if (done) {
                 //    m_handlers.remove(handler);
                 //}
             }
@@ -179,6 +179,12 @@ void snd_player::play_midi(MIDISound& sound, s32 vol, s32 pan)
     m_handlers.emplace_front(std::make_unique<midi_handler>(header, m_synth, (sound.Vol * vol) >> 10, sound.Pan, sound.Repeats, *this));
 }
 
+void snd_player::play_ame(MIDISound& sound, s32 vol, s32 pan)
+{
+    auto header = (MultiMIDIBlockHeader*)m_midi.at(sound.MIDIID);
+    m_handlers.emplace_front(std::make_unique<ame_handler>(header, m_synth, (sound.Vol * vol) >> 10, sound.Pan, sound.Repeats, *this));
+}
+
 void snd_player::play_sound(u32 bank_id, u32 sound_id)
 {
     std::scoped_lock lock(m_ticklock);
@@ -192,7 +198,9 @@ void snd_player::play_sound(u32 bank_id, u32 sound_id)
         case 4: { // normal MIDI
             play_midi(sound, 0x400, 0);
         } break;
-        case 5: // AME
+        case 5: { // AME
+            play_ame(sound, 0x400, 0);
+        } break;
         default:
             fmt::print("Unhandled sound type {}\n", sound.Type);
         }

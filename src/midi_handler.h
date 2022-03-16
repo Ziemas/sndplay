@@ -28,16 +28,6 @@ struct MIDIBlockHeader {
     /*  24 */ u32 PPQ;
 };
 
-struct MultiMIDIBlockHeader {
-    /*   0 */ u32 DataID;
-    /*   4 */ s16 Version;
-    /*   6 */ s8 Flags;
-    /*   7 */ s8 NumMIDIBlocks;
-    /*   8 */ u32 ID;
-    /*   c */ /*void**/ u32 NextMIDIBlock;
-    /*  10 */ /*s8**/ u32 BlockPtr[1];
-};
-
 class ame_handler;
 
 class midi_handler : public sound_handler {
@@ -117,6 +107,7 @@ private:
     u64 m_tick_countdown { 0 };
     bool m_get_delta { true };
     bool m_track_complete { false };
+    u32 m_muted_channels { 0 };
 
     std::array<u8, 16> m_programs {};
 

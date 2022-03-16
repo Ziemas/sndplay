@@ -93,7 +93,7 @@ void midi_handler::note_on()
         return;
     }
 
-    // fmt::print("{}: [ch{:01x}] note on {:02x} {:02x}\n", m_time, channel, note, velocity);
+    //fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
 
     // Key on all the applicable tones for the program
     auto& bank = m_locator.get_bank(m_header->BankID);
@@ -105,7 +105,7 @@ void midi_handler::note_on()
             // TODO passing m_pan here makes stuff sound bad, why?
             auto volume = make_volume(m_vol, velocity, 0, program.d.Vol, program.d.Pan, t.Vol, t.Pan);
 
-            m_synth.key_on(t, channel, note, volume);
+            m_synth.key_on(t, channel, note, volume, (u64)this);
         }
     }
 
@@ -116,11 +116,13 @@ void midi_handler::note_off()
 {
     u8 channel = m_status & 0xf;
     u8 note = m_seq_ptr[0];
-    u8 velocity = m_seq_ptr[1];
+    // Yep, no velocity for note-offs
+    [[maybe_unused]] u8 velocity = m_seq_ptr[1];
 
     // fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
 
-    m_synth.key_off(channel, note, velocity);
+    // TODO we need tracking for who owns the voices
+    m_synth.key_off(channel, note, (u64)this);
     m_seq_ptr += 2;
 }
 
@@ -137,7 +139,11 @@ void midi_handler::program_change()
 
 void midi_handler::channel_pressure()
 {
-    fmt::print("{}: channel pressure {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0]);
+    u8 channel = m_status & 0xf;
+    u8 note = m_seq_ptr[0];
+    // fmt::print("{}: channel pressure {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0]);
+    //  TODO we need tracking for who owns the voices
+    m_synth.key_off(channel, note, (u64)this);
     m_seq_ptr += 1;
 }
 
@@ -183,9 +189,12 @@ void midi_handler::system_event()
     case 0x75:
         m_seq_ptr++;
         if (m_parent.has_value()) {
-            m_parent.value()->run_ame(*this, m_seq_ptr);
+            auto [cont, ptr] = m_parent.value()->run_ame(*this, m_seq_ptr);
+            m_seq_ptr = ptr;
+            m_track_complete = true;
+        } else {
+            throw midi_error("MIDI tried to run AME without an AME handler");
         }
-        fmt::print("left ame\n");
         break;
     default:
         throw midi_error(fmt::format("Unknown system message {:02x}", *m_seq_ptr));
