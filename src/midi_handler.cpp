@@ -82,6 +82,18 @@ std::pair<size_t, u32> midi_handler::read_vlq(u8* value)
     return { len, out };
 }
 
+void midi_handler::mute_channel(u8 channel)
+{
+    fmt::print("{:x} ame muting channel {}\n", (u64)this, channel);
+    m_mute_state[channel] = true;
+}
+
+void midi_handler::unmute_channel(u8 channel)
+{
+    fmt::print("{:x} ame unmuting channel {}\n", (u64)this,channel);
+    m_mute_state[channel] = false;
+}
+
 void midi_handler::note_on()
 {
     u8 channel = m_status & 0xf;
@@ -93,7 +105,13 @@ void midi_handler::note_on()
         return;
     }
 
-    //fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
+    if (m_mute_state[channel]) {
+        fmt::print("tried to play muted channel {}\n", channel);
+        m_seq_ptr += 2;
+        return;
+    }
+
+    fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
 
     // Key on all the applicable tones for the program
     auto& bank = m_locator.get_bank(m_header->BankID);
@@ -133,7 +151,7 @@ void midi_handler::program_change()
 
     m_programs[channel] = program;
 
-    fmt::print("{}: [ch{:01x}] program change {:02x} -> {:02x}\n", m_time, channel, m_programs[channel], program);
+    fmt::print("{:x} {}: [ch{:01x}] program change {:02x} -> {:02x}\n", (u64)this, m_time, channel, m_programs[channel], program);
     m_seq_ptr += 1;
 }
 
@@ -183,7 +201,7 @@ void midi_handler::meta_event()
 
 void midi_handler::system_event()
 {
-    fmt::print("{}: system event {:02x}\n", m_time, *m_seq_ptr);
+    //fmt::print("{}: system event {:02x}\n", m_time, *m_seq_ptr);
 
     switch (*m_seq_ptr) {
     case 0x75:
@@ -191,7 +209,10 @@ void midi_handler::system_event()
         if (m_parent.has_value()) {
             auto [cont, ptr] = m_parent.value()->run_ame(*this, m_seq_ptr);
             m_seq_ptr = ptr;
-            m_track_complete = true;
+            if (!cont) {
+                fmt::print("track stopped by ame\n");
+                m_track_complete = true;
+            }
         } else {
             throw midi_error("MIDI tried to run AME without an AME handler");
         }
@@ -251,6 +272,8 @@ void midi_handler::new_delta(bool reset)
     //   fmt::print("delta {} tick countdown {} ppq {} tempo {} tickdelta {}\n", delta, m_tick_countdown, m_ppq, m_tempo, m_tickdelta);
     if (!reset)
         m_tickerror = m_tickdelta - m_ppt * m_tick_countdown;
+
+    // fmt::print("{:x} getting new tick tc {}\n", (u64)this, m_tick_countdown);
 }
 
 void midi_handler::step()

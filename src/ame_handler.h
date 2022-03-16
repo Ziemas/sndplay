@@ -43,6 +43,7 @@ private:
         }
     };
 
+#pragma pack(push, 1)
     struct GroupDescription {
         /*   0 */ s8 num_channels;
         /*   1 */ s8 basis;
@@ -51,6 +52,7 @@ private:
         /*  14 */ s8 excite_min[16];
         /*  24 */ s8 excite_max[16];
     };
+#pragma pack(pop)
 
     enum class ame_op : u8 {
         // Compares excite to next byte and puts result in the flag
@@ -64,8 +66,8 @@ private:
         unk = 0x4, // flips flag to two if one
         unk2 = 0x5, // flips flag to 0 if 2
 
-        comp_midireg_greater = 0x6,
-        comp_midireg_less = 0x7,
+        cmp_midireg_greater = 0x6,
+        cmp_midireg_less = 0x7,
 
         store_macro = 0xb,
 
@@ -75,7 +77,9 @@ private:
         cond_stop_and_start = 0x11,
         cond_start_segment = 0x12,
         cond_set_reg = 0x13,
+        cond_inc_reg = 0x14,
 
+        cmp_reg_not_equal = 0x16,
     };
 
     void start_segment(u32 id);
@@ -92,6 +96,6 @@ private:
 
     u8 m_excite { 0 };
     std::array<GroupDescription, 16> m_groups {};
-    std::array<u8, 16> m_register;
-    std::array<u8*, 16> m_macro;
+    std::array<u8, 16> m_register {};
+    std::array<u8*, 16> m_macro {};
 };

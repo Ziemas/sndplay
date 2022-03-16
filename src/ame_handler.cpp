@@ -21,7 +21,8 @@ bool ame_handler::tick()
         m->tick();
     }
 
-    // TODO
+    m_midis.remove_if([](std::unique_ptr<midi_handler> &m){ return m->complete(); });
+
     return false;
 };
 
@@ -36,72 +37,211 @@ void ame_handler::stop_segment(u32 id)
 {
 }
 
-#define AME_OP(op, body, argc)              \
-    case ame_op::op: {                      \
-        fmt::print("ame_trace: {}\n", #op); \
-        { body } stream                     \
-            += (argc);                      \
-    } break;
+//#define AME_BEGIN(op)                      \
+//    fmt::print("ame trace: {:x}\n", (op)); \
+//    if (flag == 0) {                       \
+//        do {
+//
+//#define AME_END(x) \
+//    }              \
+//    while (0)      \
+//        ;          \
+//    }              \
+//    else {}        \
+//    stream += (x);
+#define AME_BEGIN(op)                      \
+    fmt::print("ame trace: {:x}\n", (op)); \
+    if (flag) {                            \
+        if (flag == 1) {                   \
+            flag = 0;                      \
+        }                                  \
+    }                                      \
+    do {
 
-#define AME_COND(x)      \
-    if (flag == 0) {     \
-        do {             \
-            x;           \
-        } while (0);     \
-    } else {             \
-        if (flag == 1) { \
-            flag = 0;    \
-        }                \
-    }
-#define AME_CMP(x) AME_COND(if (x) { flag = 1; })
+#define AME_END(x) \
+    }              \
+    while (0)      \
+        ;          \
+    stream += (x);
 
 std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
 {
+    int flag = 0;
     bool done = false;
     bool cont = true;
 
-    // don't really understand this yet
-    int flag = 0;
-
     while (!done) {
-        auto op = static_cast<ame_op>(*stream++);
+        // auto op = static_cast<ame_op>(*stream++);
+        auto op = static_cast<u8>(*stream++);
         switch (op) {
-            AME_OP(cmp_excite_less, AME_CMP(m_excite < stream[0]), 1)
-            AME_OP(cmp_excite_not_equal, AME_CMP(m_excite != stream[0]), 1)
-            AME_OP(cmp_excite_greater, AME_CMP(m_excite > stream[0]), 1)
-            AME_OP(cond_stop_stream, AME_COND(/* stop stream matching ident */), 1)
-            AME_OP(comp_midireg_greater, AME_CMP(m_register[stream[0]] > stream[1]), 2)
-            AME_OP(comp_midireg_less, AME_CMP(m_register[stream[0]] < stream[1]), 2)
-            AME_OP(store_macro, m_macro[*stream] = stream; for (; *stream != 0xf7; stream++);, 1)
-            AME_OP(cond_run_macro, AME_COND(run_ame(midi, m_macro[stream[0]])), 1)
-            AME_OP(cond_set_reg, AME_COND(m_register[stream[0]] = stream[1]), 2)
-            AME_OP(cond_start_segment, AME_COND(start_segment(stream[0])), 1)
-            AME_OP(cond_stop_and_start, AME_COND(start_segment(stream[0]); cont = false;), 1)
-            AME_OP(thing, AME_COND(/*TODO*/), 1)
-        case ame_op::read_group_data: { // read in new group data
-            if (!flag) {
-                u8 group = *stream++;
+        case 0x0: {
+            AME_BEGIN(op)
+            if (m_excite < (stream[0] + 1)) {
+                flag = 1;
+            }
+            AME_END(1)
+        } break;
+        case 0x1: {
+            AME_BEGIN(op)
+            if (m_excite != (stream[0] + 1)) {
+                flag = 1;
+            }
+            AME_END(1)
+        } break;
+        case 0x2: {
+            AME_BEGIN(op)
+            if (m_excite > (stream[0] + 1)) {
+                flag = 1;
+            }
+            AME_END(1)
+        } break;
+        case 0x4: {
+            if (flag == 1) {
+                flag = 2;
+            }
+        } break;
+        case 0x5: {
+            if (flag == 2) {
+                flag = 0;
+            }
+        } break;
+        case 0x6: {
+            AME_BEGIN(op)
+            if (m_register[stream[0]] > (stream[1] - 1)) {
+                flag = 1;
+            }
+            AME_END(2)
+        } break;
+        case 0x7: {
+            AME_BEGIN(op)
+            if (m_register[stream[0]] < (stream[1] + 1)) {
+                flag = 1;
+            }
+            AME_END(2)
+        } break;
+        case 0xB: {
+            m_macro[stream[0]] = &stream[1];
+            while (*stream != 0xf7) {
+                stream++;
+            }
+            stream++;
+        } break;
+        case 0xc: {
+            AME_BEGIN(op)
+            auto [sub_cont, ptr] = run_ame(midi, &stream[0]);
+            if (!sub_cont) {
+                cont = false;
+                done = true;
+            }
+            AME_END(1)
+        } break;
+        case 0xd: {
+            AME_BEGIN(op)
+            cont = false;
+            done = true;
+            start_segment(m_register[stream[0] - 1]);
+            AME_END(1)
+        } break;
+        case 0xe: {
+            AME_BEGIN(op)
+            start_segment(m_register[stream[0] - 1]);
+            AME_END(1)
+        } break;
+        case 0xf: {
+            if (flag) {
+                while (*stream != 0x7f) {
+                    stream++;
+                }
+                stream++;
+                if (flag == 1)
+                    flag = 0;
+            } else {
+                fmt::print("\n");
+
+                for (int i = -2; i < 20 ;i++) {
+                    fmt::print("{:02x} ", stream[i]);
+                }
+                fmt::print("\n");
+
+                auto group = *stream++;
+                fmt::print("getting groupinfo for {}\n", group);
                 m_groups[group].basis = *stream++;
                 u8 channel = 0;
                 while (*stream != 0xf7) {
+                    fmt::print("group {} channel {}:{}\n", group, channel, *stream);
                     m_groups[group].channel[channel] = *stream++;
+                    fmt::print("group {} channel {} min {}\n", group, channel, *stream);
                     m_groups[group].excite_min[channel] = *stream++;
+                    fmt::print("group {} channel {} max {}\n", group, channel, *stream);
                     m_groups[group].excite_max[channel] = *stream++;
-                    channel += 1;
+                    channel++;
                 }
                 m_groups[group].num_channels = channel;
-                fmt::print("{} channels\n", channel);
                 stream++;
-            } else {
-                for (; *stream != 0xf7; stream++)
-                    ;
-                flag = true;
             }
-            break;
-        }
+        } break;
+        case 0x10: {
+            AME_BEGIN(op)
+            u8 group = stream[0];
+            fmt::print("setting group {}\n", group);
+            u8 comp = 0;
+            if (m_groups[group].basis == 0) {
+                comp = m_excite;
+            } else {
+                comp = m_register[m_groups[group].basis - 1];
+                fmt::print("reg[{}] {}\n", m_groups[group].basis - 1, comp);
+            }
+            for (int i = 0; i < m_groups[group].num_channels; i++) {
+                fmt::print("channel setup {} min{} cmp{} max{}\n", i, m_groups[group].excite_min[i], comp, m_groups[group].excite_max[i]);
+                if ((m_groups[group].excite_min[i] - 1 >= comp) || (m_groups[group].excite_max[i] + 1 <= comp)) {
+                    midi.mute_channel(m_groups[group].channel[i]);
+                } else {
+                    midi.unmute_channel(m_groups[group].channel[i]);
+                }
+            }
+            AME_END(1)
+        } break;
+        case 0x11: {
+            AME_BEGIN(op)
+            done = true;
+            cont = false;
+            start_segment(stream[0]);
+            AME_END(1)
+        } break;
+        case 0x12: {
+            AME_BEGIN(op)
+            start_segment(stream[0]);
+            AME_END(1)
+        } break;
+        case 0x13: {
+            AME_BEGIN(op)
+            m_register[stream[0]] = stream[1];
+            AME_END(2)
+        } break;
+        case 0x14: {
+            AME_BEGIN(op)
+            if (m_register[stream[0]] < 0x7f) {
+                m_register[stream[0]]++;
+            }
+            AME_END(1)
+        } break;
+        case 0x15: {
+            AME_BEGIN(op)
+            if (m_register[stream[0]] > 0) {
+                m_register[stream[0]]--;
+            }
+            AME_END(1)
+        } break;
+        case 0x16: {
+            AME_BEGIN(op)
+            if (m_register[stream[0]] != stream[1]) {
+                flag = 1;
+            }
+            AME_END(2)
+        } break;
         default: {
             throw ame_error(fmt::format("Unhandled AME event {:02x}", (u8)op));
-        }
+        } break;
         }
 
         if (*stream == 0xf7) {
@@ -113,6 +253,5 @@ std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
     return { cont, stream };
 }
 
-#undef AME_CMP
-#undef AME_COND
-#undef AME_OP
+#undef AME_BEGIN
+#undef AME_END

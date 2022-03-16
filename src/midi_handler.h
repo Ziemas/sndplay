@@ -1,7 +1,6 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #pragma once
-#include "SDL_audio.h"
 #include "ame_handler.h"
 #include "player.h"
 #include "sound_handler.h"
@@ -55,6 +54,7 @@ public:
         , m_header(block)
         , m_synth(synth)
     {
+        // fmt::print("spawning midi handler at {:x}\n", (u64)this);
         m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
         m_seq_ptr = m_seq_data_start;
         m_tempo = block->Tempo;
@@ -63,6 +63,10 @@ public:
 
     void start();
     bool tick() override;
+    void mute_channel(u8 channel);
+    void unmute_channel(u8 channel);
+
+    bool complete() { return m_track_complete; };
 
 private:
     static constexpr int tickrate = 240;
@@ -92,6 +96,7 @@ private:
 
     MIDIBlockHeader* m_header { nullptr };
 
+    std::array<bool, 0xf> m_mute_state { false };
     u8* m_sample_data { nullptr };
 
     u8* m_seq_data_start { nullptr };
