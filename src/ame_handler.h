@@ -54,24 +54,25 @@ private:
     };
 #pragma pack(pop)
 
+    // Well lets see, i'll try inverting these so it makes sense from the programmers pov
     enum class ame_op : u8 {
-        // Compares excite to next byte and puts result in the flag
-        cmp_excite_less = 0x0,
-        cmp_excite_not_equal = 0x1,
-        cmp_excite_greater = 0x2,
+        //compare excite to immidiete
+        s= 0x0,
+        cmpi_e_eq = 0x1,
+        cmpi_e_less= 0x2,
 
         // if the comparison flag is set, call func
-        cond_stop_stream = 0x3,
+        stop_stream = 0x3,
 
-        unk = 0x4, // flips flag to two if one
-        unk2 = 0x5, // flips flag to 0 if 2
+        flaglock = 0x4, // flips flag to two if one
+        flagunlock = 0x5, // flips flag to 0 if 2
 
-        cmp_midireg_greater = 0x6,
-        cmp_midireg_less = 0x7,
+        cmp_greater = 0x6,
+        cmp_less = 0x7,
 
         store_macro = 0xb,
 
-        cond_run_macro = 0xc,
+        run_macro = 0xc,
         read_group_data = 0xf,
         thing = 0x10,
         cond_stop_and_start = 0x11,
