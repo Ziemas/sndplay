@@ -5,7 +5,7 @@
 class sound_handler {
 public:
     virtual ~sound_handler() = default;
-    virtual void tick() = 0;
+    virtual bool tick() = 0;
 
 private:
 };

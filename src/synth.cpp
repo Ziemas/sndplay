@@ -19,8 +19,6 @@ s16_output synth::tick()
     out.left *= 0.5;
     out.right *= 0.5;
 
-    auto prev = m_voices.before_begin();
-
     m_voices.remove_if([](std::unique_ptr<voice>& v) { return v->dead(); });
 
     return out;

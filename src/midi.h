@@ -38,10 +38,11 @@ struct MultiMIDIBlockHeader {
 
 class midi_handler : public sound_handler {
 public:
-    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, locator& loc)
+    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, locator& loc)
         : m_locator(loc)
         , m_vol(vol)
         , m_pan(pan)
+        , m_repeats(repeats)
         , m_header(block)
         , m_synth(synth)
     {
@@ -52,7 +53,7 @@ public:
     };
 
     void start();
-    void tick() override;
+    bool tick() override;
 
 private:
     static constexpr int tickrate = 240;
@@ -110,6 +111,7 @@ private:
     locator& m_locator;
     s32 m_vol { 0 };
     s32 m_pan { 0 };
+    s8 m_repeats { 0 };
 
     MIDIBlockHeader* m_header { nullptr };
 

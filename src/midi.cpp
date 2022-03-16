@@ -154,11 +154,14 @@ void midi_handler::meta_event()
     size_t len = m_seq_ptr[1];
 
     if (*m_seq_ptr == 0x2f) {
-        fmt::print("End of track!\n");
-        // loop point
+        m_repeats--;
+        if (m_repeats <= 0) {
+            fmt::print("End of track, no more repeats!\n");
+            m_track_complete = true;
+        }
         m_seq_ptr = m_seq_data_start;
+        fmt::print("End of track, repeating!\n");
 
-        m_track_complete = true;
         return;
     }
 
@@ -193,7 +196,7 @@ void midi_handler::system_event()
     }
 }
 
-void midi_handler::tick()
+bool midi_handler::tick()
 {
     try {
         step();
@@ -207,6 +210,8 @@ void midi_handler::tick()
         }
         fmt::print("\n");
     }
+
+    return m_track_complete;
 }
 
 void midi_handler::new_delta(bool reset)

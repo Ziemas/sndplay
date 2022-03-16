@@ -74,7 +74,7 @@ struct SoundBank {
 
 class ame_sound_handler : public sound_handler {
 public:
-    void tick() override {};
+    bool tick() override { return true; };
 };
 
 struct MIDIBlockHeader;
