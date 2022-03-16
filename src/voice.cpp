@@ -18,9 +18,6 @@ static constexpr std::array<std::array<s16, 2>, 5> adpcm_coefs = { {
 
 void voice::DecodeSamples()
 {
-    // The block header (and thus LSA) updates every spu cycle
-    UpdateBlockHeader();
-
     // This doesn't exactly match the real behaviour,
     // it seems to initially decode a bigger chunk
     // and then decode more data after a bit has drained
@@ -57,6 +54,7 @@ void voice::DecodeSamples()
     m_NAX++;
 
     if ((m_NAX & 0x7) == 0) {
+        UpdateBlockHeader();
         if (m_CurHeader.LoopEnd.get()) {
             m_NAX = m_LSA;
             m_ENDX = true;
@@ -87,6 +85,7 @@ static s16 ApplyVolume(s16 sample, s32 volume)
 
 void voice::key_on()
 {
+    UpdateBlockHeader();
     m_NAX = 0;
     m_NAX++;
 
