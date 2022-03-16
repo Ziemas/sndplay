@@ -18,53 +18,6 @@
 **
 */
 
-/*
-** Sequence commands
-** 9x xx xx - key on
-** Ex xx xx - unk
-**
-** DX XX - Stop channel / note
-**
-**
-** BX
-**
-** non-standard commands?
-** F0 75 - big function, string of commands until f7?
-** F0 F7 - seek to next f7
-**
-** FF - nop? falls through to common code - was it ff 00?
-** FF 2F - loop back to start?
-** FF 51 XX XX XX
-**
-*/
-// player 0x001EC344
-// sequence data at 0x001EC3F9
-// clang-format off
-[[maybe_unused]] static u8 testSeq[56] = {
-    0x00, // midi delta
-    0xf0, 0x75, // sysex 0x75, AME function
-        0x0f, // read group data
-        0x00, 0x01, 0x00, 0x01,
-        0x01, 0x01, 0x01, 0x01,
-        0x02, 0x01, 0x01, 0x03,
-        0x02, 0x02, 0x04, 0x03,
-        0x03, 0x05, 0x03, 0x03,
-        0x06, 0x03, 0x03, 0x07,
-        0x04, 0x04, 0x08, 0x04,
-        0x04, 0x09, 0x04, 0x04,
-        0x0a, 0x04, 0x04, 0x0b,
-        0x04, 0x04, 0x0c, 0x04,
-        0x04,
-        0xf7, // end marker
-
-    0x13, 0x00, 0x00, // if (flag) register[0] = 0
-    0x12, 0x02, // if (flag) start segment 2
-    0x11, 0x01, // if (flag) stop current segment & start segment 1
-
-    0xf7, 0x00, 0x00 // end
-};
-// clang-format on
-
 std::pair<size_t, u32> midi_handler::read_vlq(u8* value)
 {
     size_t len = 1;
