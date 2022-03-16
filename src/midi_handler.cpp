@@ -63,7 +63,7 @@ void midi_handler::note_on()
         return;
     }
 
-    //fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
+    fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
 
     // Key on all the applicable tones for the program
     auto& bank = m_locator.get_bank(m_header->BankID);
@@ -89,7 +89,7 @@ void midi_handler::note_off()
     // Yep, no velocity for note-offs
     [[maybe_unused]] u8 velocity = m_seq_ptr[1];
 
-    // fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+     fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
 
     // TODO we need tracking for who owns the voices
     m_synth.key_off(channel, note, (u64)this);
@@ -203,30 +203,9 @@ void midi_handler::new_delta(bool reset)
 
     m_seq_ptr += len;
     m_time += delta;
-    u32 mics_per_ppqn = m_tempo / m_ppq;
-    // fmt::print("mics_per_tick {:x}\n", mics_per_tick);
-    // fmt::print("mics_per_ppqn {:x}\n", mics_per_ppqn);
 
-    if (reset)
-        m_ppt = mics_per_tick / mics_per_ppqn;
-
-    // fmt::print("ppt {:x}\n", m_ppt);
-
-    m_tickdelta = delta + m_tickerror;
-
-    // m_tick_countdown = (m_tickdelta * mics_per_ppqn) / mics_per_tick;
-    m_tick_countdown = (m_tickdelta * mics_per_ppqn) / mics_per_tick;
-    // fmt::print("delta {} countdown {:x}\n", m_tickdelta, m_tick_countdown);
-
-    // m_tickdelta = 100 * delta + m_tickerror;
-    // m_tick_countdown = (m_tickdelta / 100 * m_tempo / m_ppq - 1 + mics_per_tick) / mics_per_tick;
-    //  m_tickdelta = delta * 100 + m_tickerror;
-    //  m_tick_countdown = ((((m_tickdelta / 100) * m_tempo) / m_ppq - 1) + mics_per_tick) / mics_per_tick;
-    //   fmt::print("delta {} tick countdown {} ppq {} tempo {} tickdelta {}\n", delta, m_tick_countdown, m_ppq, m_tempo, m_tickdelta);
-    if (!reset)
-        m_tickerror = m_tickdelta - m_ppt * m_tick_countdown;
-
-    // fmt::print("{:x} getting new tick tc {}\n", (u64)this, m_tick_countdown);
+    auto delta_mics = m_tempo * delta / m_ppq;
+    m_tick_countdown = delta_mics / mics_per_tick;
 }
 
 void midi_handler::step()
@@ -241,6 +220,13 @@ void midi_handler::step()
     while (!m_tick_countdown && !m_track_complete) {
         // running status, new events always have top bit
         if (*m_seq_ptr & 0x80) {
+
+            //fmt::print("\n");
+            //for (int i = -2; i < 10; i++) {
+            //    fmt::print("{:02x} ", m_seq_ptr[i]);
+            //}
+            //fmt::print("\n");
+
             m_status = *m_seq_ptr;
             m_seq_ptr++;
         }

@@ -15,15 +15,12 @@ s16_output synth::tick()
         out += v->run();
     }
 
-    // clean up disused ones?
-    out.left *= 0.5;
-    out.right *= 0.5;
-
     m_voices.remove_if([](std::unique_ptr<voice>& v) { return v->dead(); });
 
     return out;
 }
 
+// TODO verify
 static std::pair<s16, s16> pitchbend(Tone& tone, int current_pb, int current_pm, int start_note, int start_fine)
 {
     auto v9 = (start_note << 7) + start_fine * current_pm;
@@ -37,14 +34,14 @@ static std::pair<s16, s16> pitchbend(Tone& tone, int current_pb, int current_pm,
 
 void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner)
 {
-    auto v = std::make_unique<voice>((u16*)(m_tmp_samples.get() + tone.VAGInSR), channel, owner);
+    auto v = std::make_unique<voice>((u16*)(m_tmp_samples.get() + tone.VAGInSR), channel, owner, note);
 
     v->set_volume(volume.left >> 1, volume.right >> 1);
 
     // TODO pb/pm function
     // auto pitch = PS1Note2Pitch(tone.CenterNote, tone.CenterFine, notes.first, notes.second);
-    // auto notes = pitchbend(tone, 0, 0, note, 0);
-    auto pitch = PS1Note2Pitch(tone.CenterNote, tone.CenterFine, note, 0);
+    auto notes = pitchbend(tone, 0, 0, note, 0);
+    auto pitch = PS1Note2Pitch(tone.CenterNote, tone.CenterFine, notes.first, notes.second);
     v->set_pitch(pitch);
     v->set_asdr1(tone.ADSR1);
     v->set_asdr2(tone.ADSR2);
@@ -55,7 +52,7 @@ void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner)
 void synth::key_off(u8 channel, u8 note, u64 owner)
 {
     for (auto& v : m_voices) {
-        if (v->m_channel == channel && v->m_owner == owner) {
+        if (v->m_channel == channel && v->m_owner == owner && v->m_note == note) {
             v->key_off();
         }
     }

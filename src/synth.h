@@ -12,6 +12,7 @@ enum class toneflag : u16 {
     out_dry = 0x10,
 };
 
+#pragma pack(push, 1)
 struct Tone {
     /*   0 */ s8 Priority;
     /*   1 */ s8 Vol;
@@ -83,6 +84,7 @@ struct VoiceAttributes {
     /*  28 */ u32 Flags;
     /*  2c */ ownerdata_tag OwnerData;
 };
+#pragma pack(pop)
 
 struct Prog {
     ProgData d;

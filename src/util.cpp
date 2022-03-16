@@ -210,19 +210,27 @@ static vol_pair PanTable[] = {
 
 vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, int prog_pan, int tone_vol, int tone_pan)
 {
-    s32 vol = (((((velocity_volume * 258 * tone_vol) / 0x7f) * prog_vol) / 0x7f) * sound_vol) / 0x7f;
+    s32 vol = (((((velocity_volume * 0x7f * tone_vol) / 0x7f) * prog_vol) / 0x7f) * sound_vol) / 0x7f;
     // s32 vol = (velocity_volume * tone_vol * prog_vol * sound_vol) >> 7;
-    //fmt::print("cvol {:x} nvol {:x} pvol {:x} tvol {:x} -> {:x}\n", sound_vol, velocity_volume, prog_vol, tone_vol, vol);
+    // fmt::print("cvol {:x} nvol {:x} pvol {:x} tvol {:x} -> {:x}\n", sound_vol, velocity_volume, prog_vol, tone_vol, vol);
 
-    //fmt::print("pan1 {} pan2 {} pan3 {}\n", pan, prog_pan, tone_pan);
+    // fmt::print("pan1 {} pan2 {} pan3 {}\n", pan, prog_pan, tone_pan);
     if (vol == 0) {
         return { 0, 0 };
     }
 
     int total_pan = pan + tone_pan + prog_pan;
-    while (total_pan >= 360) {
-        total_pan -= 360;
-    }
+    // while (total_pan >= 360) {
+    //     total_pan -= 360;
+    // }
+    // while (total_pan < 0) {
+    //     total_pan += 360;
+    // }
+    // if (total_pan >= 270) {
+    //     total_pan -= 270;
+    // } else {
+    //     total_pan += 90;
+    // }
     while (total_pan < 0) {
         total_pan += 360;
     }
@@ -232,17 +240,27 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
         total_pan += 90;
     }
 
-    //fmt::print("total pan {}\n", total_pan);
+    // fmt::print("total pan {}\n", total_pan);
 
     if (total_pan >= 180) {
         s16 lvol = (PanTable[total_pan - 180].left * vol) >> 15;
         s16 rvol = (PanTable[total_pan - 180].right * vol) >> 15;
-        //fmt::print("lvol {:x} rvol {:x}\n", lvol, rvol);
+        if (lvol < 0 && rvol < 0) {
+            lvol = -lvol;
+            rvol = -rvol;
+        }
+
+        // fmt::print("lvol {:x} rvol {:x}\n", lvol, rvol);
         return { lvol, rvol };
     } else {
         s16 rvol = (PanTable[total_pan].left * vol) >> 15;
         s16 lvol = (PanTable[total_pan].right * vol) >> 15;
-        //fmt::print("lvol {:x} rvol {:x}\n", lvol, rvol);
+        if (lvol < 0 && rvol < 0) {
+            lvol = -lvol;
+            rvol = -rvol;
+        }
+
+        // fmt::print("lvol {:x} rvol {:x}\n", lvol, rvol);
         return { lvol, rvol };
     }
 

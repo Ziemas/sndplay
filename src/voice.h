@@ -9,15 +9,17 @@
 
 class voice {
 public:
-    voice(u16* sample, u8 channel, u64 owner)
+    voice(u16* sample, u8 channel, u64 owner, u8 note)
         : m_channel(channel)
         , m_owner(owner)
+        , m_note(note)
         , m_sample(sample)
     {
     }
 
     u8 m_channel;
     u64 m_owner;
+    u8 m_note;
     s16_output run();
 
     void key_on();

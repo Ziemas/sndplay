@@ -100,7 +100,7 @@ private:
 
     MIDIBlockHeader* m_header { nullptr };
 
-    std::array<bool, 0xf> m_mute_state {};
+    std::array<bool, 16> m_mute_state {};
     u8* m_sample_data { nullptr };
 
     u8* m_seq_data_start { nullptr };
