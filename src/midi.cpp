@@ -154,13 +154,15 @@ void midi_handler::meta_event()
     size_t len = m_seq_ptr[1];
 
     if (*m_seq_ptr == 0x2f) {
+        m_seq_ptr = m_seq_data_start;
         m_repeats--;
+
         if (m_repeats <= 0) {
             fmt::print("End of track, no more repeats!\n");
             m_track_complete = true;
+        } else {
+            fmt::print("End of track, repeating!\n");
         }
-        m_seq_ptr = m_seq_data_start;
-        fmt::print("End of track, repeating!\n");
 
         return;
     }

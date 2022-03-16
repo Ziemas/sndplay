@@ -53,9 +53,11 @@ void snd_player::tick(s16_output* stream, int samples)
         if (htick == 200) {
             for (auto& handler : m_handlers) {
                 bool done = handler.get()->tick();
-                if (done) {
-                    m_handlers.remove(handler);
-                }
+
+                // clean up handlers here
+                //if (done) {
+                //    m_handlers.remove(handler);
+                //}
             }
 
             htick = 0;
