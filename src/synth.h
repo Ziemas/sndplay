@@ -12,7 +12,6 @@ enum class toneflag : u16 {
     out_dry = 0x10,
 };
 
-#pragma pack(push, 1)
 struct Tone {
     /*   0 */ s8 Priority;
     /*   1 */ s8 Vol;
@@ -84,7 +83,6 @@ struct VoiceAttributes {
     /*  28 */ u32 Flags;
     /*  2c */ ownerdata_tag OwnerData;
 };
-#pragma pack(pop)
 
 struct Prog {
     ProgData d;
@@ -95,16 +93,22 @@ class synth {
 public:
     synth()
     {
+        m_master_vol.fill(0x400);
+        m_group_duck.fill(0x10000);
     }
 
     s16_output tick();
-    void key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner);
+    void key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner, u32 group);
     void key_off(u8 channel, u8 note, u64 owner);
 
     void load_samples(u32 bank, std::unique_ptr<u8[]>);
 
 private:
+    std::array<s32, 32> m_master_vol;
+    std::array<s32, 32> m_group_duck;
     std::unique_ptr<u8[]> m_tmp_samples;
     // std::unordered_map<u32, std::unique_ptr<u8[]>> m_bank_samples;
     std::forward_list<std::unique_ptr<voice>> m_voices;
+
+    s16 adjust_vol_to_group(s16 volume, int group);
 };

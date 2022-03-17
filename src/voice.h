@@ -47,8 +47,8 @@ public:
     }
     void set_volume(u16 left, u16 right)
     {
-        // fmt::print("VOICE[{}] VOLL WRITE {:x}\n", m_channel, left);
-        // fmt::print("VOICE[{}] VOLR WRITE {:x}\n", m_channel, right);
+        fmt::print("VOICE[{}] VOLL WRITE {:x}\n", m_channel, left);
+        fmt::print("VOICE[{}] VOLR WRITE {:x}\n", m_channel, right);
         m_Volume.left.Set(left);
         m_Volume.right.Set(right);
     }

@@ -213,11 +213,18 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
     // TODO configurable, low prio
     static constexpr int channels = 2;
 
-    s32 vol = (((((velocity_volume * 0x7f * tone_vol) / 0x7f) * prog_vol) / 0x7f) * sound_vol) / 0x7f;
-    // s32 vol = (velocity_volume * tone_vol * prog_vol * sound_vol) >> 7;
-    // fmt::print("cvol {:x} nvol {:x} pvol {:x} tvol {:x} -> {:x}\n", sound_vol, velocity_volume, prog_vol, tone_vol, vol);
+    // Scale up as close as we can to max positive 16bit volume
+    // I'd have just used shifting but I guess this does get closer
 
-    // fmt::print("pan1 {} pan2 {} pan3 {}\n", pan, prog_pan, tone_pan);
+
+    //fmt::print("input {:x} {:x} {:x} {:x}\n", sound_vol, velocity_volume, prog_vol, tone_vol);
+
+    s32 vol = sound_vol * 258;
+    vol = (vol * velocity_volume) / 0x7f;
+    vol = (vol * prog_vol) / 0x7f;
+    vol = (vol * tone_vol) / 0x7f;
+
+    //fmt::print("out {:x}\n", vol);
     if (vol == 0) {
         return { 0, 0 };
     }
@@ -230,50 +237,37 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
     while (total_pan >= 360) {
         total_pan -= 360;
     }
+
     while (total_pan < 0) {
         total_pan += 360;
     }
+
     if (total_pan >= 270) {
         total_pan -= 270;
     } else {
         total_pan += 90;
     }
-    // while (total_pan < 0) {
-    //     total_pan += 360;
-    // }
-    // if (total_pan >= 270) {
-    //     total_pan -= 270;
-    // } else {
-    //     total_pan += 90;
-    // }
 
     // fmt::print("total pan {}\n", total_pan);
+    s16 lvol = 0;
+    s16 rvol = 0;
 
     if (total_pan >= 180) {
-        s16 lvol = (PanTable[total_pan - 180].left * vol) >> 15;
-        s16 rvol = (PanTable[total_pan - 180].right * vol) >> 15;
-        if (lvol < 0 && rvol < 0) {
-            lvol = -lvol;
-            rvol = -rvol;
-        }
-
-        // fmt::print("lvol {:x} rvol {:x}\n", lvol, rvol);
-        return { lvol, rvol };
+        rvol = (PanTable[total_pan - 180].left * vol) / 0x3fff;
+        lvol = (PanTable[total_pan - 180].right * vol) / 0x3fff;
     } else {
-        s16 rvol = (PanTable[total_pan].left * vol) >> 15;
-        s16 lvol = (PanTable[total_pan].right * vol) >> 15;
-        if (lvol < 0 && rvol < 0) {
-            lvol = -lvol;
-            rvol = -rvol;
-        }
-
-        // fmt::print("lvol {:x} rvol {:x}\n", lvol, rvol);
-        return { lvol, rvol };
+        lvol = (PanTable[total_pan].left * vol) / 0x3fff;
+        rvol = (PanTable[total_pan].right * vol) / 0x3fff;
     }
 
     // TODO rest of this function
+    // there is a whole bunch of math depending on what the volume was previously?
 
-    return { (s16)vol, (s16)vol };
+    // HACK enable these if you want acceptable audio levels
+    //lvol >>= 1;
+    //rvol >>= 1;
+
+    return { lvol, rvol };
 }
 
 u16 sceSdNote2Pitch(u16 center_note, u16 center_fine, u16 note, short fine)

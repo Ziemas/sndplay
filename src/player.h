@@ -1,8 +1,8 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #pragma once
-#include "midi_handler.h"
 #include "ame_handler.h"
+#include "midi_handler.h"
 #include "sound_handler.h"
 #include "synth.h"
 #include "types.h"
@@ -27,6 +27,30 @@ struct MIDISound {
     /*  17 */ s8 Flags;
     /*  18 */ /*void**/ u32 MIDIBlock;
 };
+
+struct SFXBlock2 {
+	/*   0 */ u32 DataID;
+	/*   4 */ u32 Version;
+	/*   8 */ u32 Flags;
+	/*   c */ u32 BlockID;
+	/*  10 */ s8 BlockNum;
+	/*  11 */ s8 pad1;
+	/*  12 */ s16 pad2;
+	/*  14 */ s16 pad3;
+	/*  16 */ s16 NumSounds;
+	/*  18 */ s16 NumGrains;
+	/*  1a */ s16 NumVAGs;
+	/*  1c */ u32 FirstSound;
+	/*  20 */ u32 FirstGrain;
+	/*  24 */ u32 VagsInSR;
+	/*  28 */ u32 VagDataSize;
+	/*  2c */ u32 SRAMAllocSize;
+	/*  30 */ u32 NextBlock;
+	/*  34 */ u32 GrainData;
+	/*  38 */ u32 BlockNames;
+	/*  3c */ u32 SFXUD;
+};
+
 
 struct SoundBankData {
     /*   0 */ u32 DataID;

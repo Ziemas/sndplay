@@ -2,17 +2,18 @@
 // SPDX-License-Identifier: ISC
 #include "ame_handler.h"
 
-ame_handler::ame_handler(MultiMIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, locator& loc)
+ame_handler::ame_handler(MultiMIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, u32 group, locator& loc)
     : m_header(block)
     , m_locator(loc)
     , m_synth(synth)
     , m_vol(vol)
     , m_pan(pan)
+    , m_group(group)
     , m_repeats(repeats)
 {
     auto firstblock = (MIDIBlockHeader*)(block->BlockPtr[0] + (uintptr_t)block);
 
-    m_midis.emplace_front(std::make_unique<midi_handler>(firstblock, synth, vol, pan, repeats, loc, this));
+    m_midis.emplace_front(std::make_unique<midi_handler>(firstblock, synth, vol, pan, repeats, m_group, loc, this));
 };
 
 bool ame_handler::tick()
@@ -30,7 +31,7 @@ void ame_handler::start_segment(u32 id)
 {
     auto midiblock = (MIDIBlockHeader*)(m_header->BlockPtr[id] + (uintptr_t)m_header);
     fmt::print("starting segment {}\n", id);
-    m_midis.emplace_front(std::make_unique<midi_handler>(midiblock, m_synth, m_vol, m_pan, m_repeats, m_locator, this));
+    m_midis.emplace_front(std::make_unique<midi_handler>(midiblock, m_synth, m_vol, m_pan, m_repeats, m_group, m_locator, this));
 }
 
 void ame_handler::stop_segment(u32 id)

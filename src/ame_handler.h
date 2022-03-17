@@ -21,7 +21,7 @@ struct MultiMIDIBlockHeader {
 class midi_handler;
 class ame_handler : public sound_handler {
 public:
-    ame_handler(MultiMIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, locator& loc);
+    ame_handler(MultiMIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, u32 group, locator& loc);
     bool tick() override;
 
     std::pair<bool, u8*> run_ame(midi_handler&, u8* stream);
@@ -63,6 +63,7 @@ private:
     s32 m_vol { 0 };
     s32 m_pan { 0 };
     s8 m_repeats { 0 };
+    u32 m_group { 0 };
 
     std::forward_list<std::unique_ptr<midi_handler>> m_midis;
 

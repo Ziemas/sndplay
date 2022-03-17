@@ -15,6 +15,9 @@ s16_output synth::tick()
         out += v->run();
     }
 
+    // out.left *= 0.6;
+    // out.right *= 0.6;
+
     m_voices.remove_if([](std::unique_ptr<voice>& v) { return v->dead(); });
 
     return out;
@@ -32,12 +35,34 @@ static std::pair<s16, s16> pitchbend(Tone& tone, int current_pb, int current_pm,
     return { v7 / 128, v7 % 128 };
 }
 
-void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner)
+s16 synth::adjust_vol_to_group(s16 involume, int group)
+{
+    auto volume = involume;
+    if (group >= 15)
+        return volume;
+
+    if (volume >= 0x7fff)
+        volume = 0x7ffe;
+
+    auto modifier = (m_master_vol[group] * m_group_duck[group]) / 0x10000;
+    volume = (volume * modifier) / 0x400;
+
+    //fmt::print("made volume {:x} -> {:x}\n", involume, volume);
+    return volume;
+}
+
+void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner, u32 group)
 {
     auto v = std::make_unique<voice>((u16*)(m_tmp_samples.get() + tone.VAGInSR), channel, owner, note);
 
-    v->set_volume(volume.left >> 1, volume.right >> 1);
+    v->set_volume(adjust_vol_to_group(volume.left, group) >> 1,
+        adjust_vol_to_group(volume.right, group) >> 1);
 
+    if ((tone.Flags & 0x10) != 0x0) {
+        throw std::runtime_error("reverb only voice not handler");
+    }
+
+    //v->set_volume(volume.left>>1, volume.right>>1);
     // TODO pb/pm function
     // auto pitch = PS1Note2Pitch(tone.CenterNote, tone.CenterFine, notes.first, notes.second);
     auto notes = pitchbend(tone, 0, 0, note, 0);

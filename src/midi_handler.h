@@ -31,27 +31,30 @@ class ame_handler;
 
 class midi_handler : public sound_handler {
 public:
-    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, locator& loc)
+    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, u32 group, locator& loc)
         : m_locator(loc)
         , m_vol(vol)
         , m_pan(pan)
         , m_repeats(repeats)
         , m_header(block)
+        , m_group(group)
         , m_synth(synth)
     {
         m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
         m_seq_ptr = m_seq_data_start;
         m_tempo = block->Tempo;
         m_ppq = block->PPQ;
+        m_chanvol.fill(0x7f);
     };
 
-    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, locator& loc, ame_handler* parent)
+    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, u32 group, locator& loc, ame_handler* parent)
         : m_parent(parent)
         , m_locator(loc)
         , m_vol(vol)
         , m_pan(pan)
         , m_repeats(repeats)
         , m_header(block)
+        , m_group(group)
         , m_synth(synth)
     {
         // fmt::print("spawning midi handler at {:x}\n", (u64)this);
@@ -60,9 +63,10 @@ public:
         m_tempo = block->Tempo;
         m_ppq = block->PPQ;
 
+        m_chanvol.fill(0x7f);
+
         fmt::print("added new midi handler {:x}\n", (u64)this);
         fmt::print("tempo:{:x} ppq:{} repeats:{} \n", m_tempo, m_ppq, repeats);
-
     };
 
     void start();
@@ -101,6 +105,8 @@ private:
     MIDIBlockHeader* m_header { nullptr };
 
     std::array<bool, 16> m_mute_state {};
+    std::array<s8, 16> m_chanvol {};
+    std::array<s8, 16> m_chanpan {};
     u8* m_sample_data { nullptr };
 
     u8* m_seq_data_start { nullptr };
@@ -113,6 +119,7 @@ private:
     u32 m_tickerror { 0 };
     u32 m_tickdelta { 0 };
     u32 m_ppt { 0 };
+    u32 m_group { 0 };
     u64 m_tick_countdown { 0 };
     bool m_get_delta { true };
     bool m_track_complete { false };

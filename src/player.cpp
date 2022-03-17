@@ -176,13 +176,13 @@ void snd_player::load_midi(std::fstream& in)
 void snd_player::play_midi(MIDISound& sound, s32 vol, s32 pan)
 {
     auto header = m_midi.at(sound.MIDIID);
-    m_handlers.emplace_front(std::make_unique<midi_handler>(header, m_synth, (sound.Vol * vol) >> 10, sound.Pan, sound.Repeats, *this));
+    m_handlers.emplace_front(std::make_unique<midi_handler>(header, m_synth, (sound.Vol * vol) >> 10, sound.Pan, sound.Repeats, sound.VolGroup, *this));
 }
 
 void snd_player::play_ame(MIDISound& sound, s32 vol, s32 pan)
 {
     auto header = (MultiMIDIBlockHeader*)m_midi.at(sound.MIDIID);
-    m_handlers.emplace_front(std::make_unique<ame_handler>(header, m_synth, (sound.Vol * vol) >> 10, sound.Pan, sound.Repeats, *this));
+    m_handlers.emplace_front(std::make_unique<ame_handler>(header, m_synth, (sound.Vol * vol) >> 10, sound.Pan, sound.Repeats, sound.VolGroup, *this));
 }
 
 void snd_player::play_sound(u32 bank_id, u32 sound_id)
