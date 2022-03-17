@@ -210,6 +210,9 @@ static vol_pair PanTable[] = {
 
 vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, int prog_pan, int tone_vol, int tone_pan)
 {
+    // TODO configurable, low prio
+    static constexpr int channels = 2;
+
     s32 vol = (((((velocity_volume * 0x7f * tone_vol) / 0x7f) * prog_vol) / 0x7f) * sound_vol) / 0x7f;
     // s32 vol = (velocity_volume * tone_vol * prog_vol * sound_vol) >> 7;
     // fmt::print("cvol {:x} nvol {:x} pvol {:x} tvol {:x} -> {:x}\n", sound_vol, velocity_volume, prog_vol, tone_vol, vol);
@@ -219,18 +222,14 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
         return { 0, 0 };
     }
 
+    if (channels == 1) {
+        return { (s16)vol, (s16)vol };
+    }
+
     int total_pan = pan + tone_pan + prog_pan;
-    // while (total_pan >= 360) {
-    //     total_pan -= 360;
-    // }
-    // while (total_pan < 0) {
-    //     total_pan += 360;
-    // }
-    // if (total_pan >= 270) {
-    //     total_pan -= 270;
-    // } else {
-    //     total_pan += 90;
-    // }
+    while (total_pan >= 360) {
+        total_pan -= 360;
+    }
     while (total_pan < 0) {
         total_pan += 360;
     }
@@ -239,6 +238,14 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
     } else {
         total_pan += 90;
     }
+    // while (total_pan < 0) {
+    //     total_pan += 360;
+    // }
+    // if (total_pan >= 270) {
+    //     total_pan -= 270;
+    // } else {
+    //     total_pan += 90;
+    // }
 
     // fmt::print("total pan {}\n", total_pan);
 
@@ -326,19 +333,17 @@ u16 sceSdNote2Pitch(u16 center_note, u16 center_fine, u16 note, short fine)
 
 u16 PS1Note2Pitch(s8 center_note, s8 center_fine, short note, short fine)
 {
-    bool thing = false;
+    bool ps1_note = false;
     if (center_note >= 0) {
-        thing = true;
+        ps1_note = true;
     } else {
-        thing = false;
         center_note = -center_note;
     }
 
-    auto pitch = sceSdNote2Pitch(center_note, center_fine, note, fine);
-    if (thing) {
+    u16 pitch = sceSdNote2Pitch(center_note, center_fine, note, fine);
+    if (ps1_note) {
         pitch = 44100 * pitch / 48000;
     }
 
-    // fmt::print("center_note {}, center_fine {}, note {}, fine {} -> pitch {:04x}\n", center_note, center_fine, note, fine, pitch);
     return pitch;
 }

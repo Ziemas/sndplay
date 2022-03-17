@@ -94,7 +94,7 @@ private:
     std::optional<ame_handler*> m_parent;
 
     locator& m_locator;
-    s32 m_vol { 0 };
+    s32 m_vol { 0x7f };
     s32 m_pan { 0 };
     s8 m_repeats { 0 };
 

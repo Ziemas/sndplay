@@ -73,7 +73,7 @@ void midi_handler::note_on()
         if (note >= t.MapLow && note <= t.MapHigh) {
 
             // TODO passing m_pan here makes stuff sound bad, why?
-            auto volume = make_volume(m_vol, velocity, 0, program.d.Vol, program.d.Pan, t.Vol, t.Pan);
+            auto volume = make_volume(m_vol, (velocity * m_vol) >> 7, t.Pan, program.d.Vol, program.d.Pan, t.Vol, t.Pan);
 
             m_synth.key_on(t, channel, note, volume, (u64)this);
         }
@@ -89,7 +89,7 @@ void midi_handler::note_off()
     // Yep, no velocity for note-offs
     [[maybe_unused]] u8 velocity = m_seq_ptr[1];
 
-     fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
+    // fmt::print("{}: note off {:02x} {:02x} {:02x}\n", m_time, m_status, m_seq_ptr[0], m_seq_ptr[1]);
 
     // TODO we need tracking for who owns the voices
     m_synth.key_off(channel, note, (u64)this);
@@ -103,7 +103,7 @@ void midi_handler::program_change()
 
     m_programs[channel] = program;
 
-    //fmt::print("{:x} {}: [ch{:01x}] program change {:02x} -> {:02x}\n", (u64)this, m_time, channel, m_programs[channel], program);
+    // fmt::print("{:x} {}: [ch{:01x}] program change {:02x} -> {:02x}\n", (u64)this, m_time, channel, m_programs[channel], program);
     m_seq_ptr += 1;
 }
 
@@ -221,11 +221,11 @@ void midi_handler::step()
         // running status, new events always have top bit
         if (*m_seq_ptr & 0x80) {
 
-            //fmt::print("\n");
-            //for (int i = -2; i < 10; i++) {
-            //    fmt::print("{:02x} ", m_seq_ptr[i]);
-            //}
-            //fmt::print("\n");
+            // fmt::print("\n");
+            // for (int i = -2; i < 10; i++) {
+            //     fmt::print("{:02x} ", m_seq_ptr[i]);
+            // }
+            // fmt::print("\n");
 
             m_status = *m_seq_ptr;
             m_seq_ptr++;
