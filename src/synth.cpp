@@ -46,9 +46,13 @@ s16 synth::adjust_vol_to_group(s16 involume, int group)
 
     auto modifier = (m_master_vol[group] * m_group_duck[group]) / 0x10000;
     volume = (volume * modifier) / 0x400;
+    int sign = 1;
+    if (volume < 0) {
+        sign = -1;
+    }
 
     //fmt::print("made volume {:x} -> {:x}\n", involume, volume);
-    return volume;
+    return ((volume * volume) / 0x7ffe) * sign;
 }
 
 void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner, u32 group)
@@ -62,9 +66,6 @@ void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner, 
         throw std::runtime_error("reverb only voice not handler");
     }
 
-    //v->set_volume(volume.left>>1, volume.right>>1);
-    // TODO pb/pm function
-    // auto pitch = PS1Note2Pitch(tone.CenterNote, tone.CenterFine, notes.first, notes.second);
     auto notes = pitchbend(tone, 0, 0, note, 0);
     auto pitch = PS1Note2Pitch(tone.CenterNote, tone.CenterFine, notes.first, notes.second);
     v->set_pitch(pitch);

@@ -263,10 +263,6 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
     // TODO rest of this function
     // there is a whole bunch of math depending on what the volume was previously?
 
-    // HACK enable these if you want acceptable audio levels
-    //lvol >>= 1;
-    //rvol >>= 1;
-
     return { lvol, rvol };
 }
 
