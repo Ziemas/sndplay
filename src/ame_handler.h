@@ -20,11 +20,16 @@ struct MultiMIDIBlockHeader {
 
 class midi_handler;
 class ame_handler : public sound_handler {
+    friend class midi_handler;
+
 public:
     ame_handler(MultiMIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, u32 group, locator& loc);
     bool tick() override;
 
-    std::pair<bool, u8*> run_ame(midi_handler&, u8* stream);
+    void set_register(u8 reg, u8 value)
+    {
+        m_register[reg] = value;
+    }
 
 private:
     struct ame_error : public std::exception {
@@ -56,6 +61,7 @@ private:
 
     void start_segment(u32 id);
     void stop_segment(u32 id);
+    std::pair<bool, u8*> run_ame(midi_handler&, u8* stream);
 
     MultiMIDIBlockHeader* m_header { nullptr };
     locator& m_locator;

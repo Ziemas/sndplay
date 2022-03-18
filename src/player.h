@@ -29,28 +29,27 @@ struct MIDISound {
 };
 
 struct SFXBlock2 {
-	/*   0 */ u32 DataID;
-	/*   4 */ u32 Version;
-	/*   8 */ u32 Flags;
-	/*   c */ u32 BlockID;
-	/*  10 */ s8 BlockNum;
-	/*  11 */ s8 pad1;
-	/*  12 */ s16 pad2;
-	/*  14 */ s16 pad3;
-	/*  16 */ s16 NumSounds;
-	/*  18 */ s16 NumGrains;
-	/*  1a */ s16 NumVAGs;
-	/*  1c */ u32 FirstSound;
-	/*  20 */ u32 FirstGrain;
-	/*  24 */ u32 VagsInSR;
-	/*  28 */ u32 VagDataSize;
-	/*  2c */ u32 SRAMAllocSize;
-	/*  30 */ u32 NextBlock;
-	/*  34 */ u32 GrainData;
-	/*  38 */ u32 BlockNames;
-	/*  3c */ u32 SFXUD;
+    /*   0 */ u32 DataID;
+    /*   4 */ u32 Version;
+    /*   8 */ u32 Flags;
+    /*   c */ u32 BlockID;
+    /*  10 */ s8 BlockNum;
+    /*  11 */ s8 pad1;
+    /*  12 */ s16 pad2;
+    /*  14 */ s16 pad3;
+    /*  16 */ s16 NumSounds;
+    /*  18 */ s16 NumGrains;
+    /*  1a */ s16 NumVAGs;
+    /*  1c */ u32 FirstSound;
+    /*  20 */ u32 FirstGrain;
+    /*  24 */ u32 VagsInSR;
+    /*  28 */ u32 VagDataSize;
+    /*  2c */ u32 SRAMAllocSize;
+    /*  30 */ u32 NextBlock;
+    /*  34 */ u32 GrainData;
+    /*  38 */ u32 BlockNames;
+    /*  3c */ u32 SFXUD;
 };
-
 
 struct SoundBankData {
     /*   0 */ u32 DataID;
@@ -103,21 +102,20 @@ class snd_player : public locator {
 public:
     snd_player();
     ~snd_player();
-    //snd_player(const snd_player&) = delete;
-    //snd_player operator=(const snd_player&) = delete;
+    // snd_player(const snd_player&) = delete;
+    // snd_player operator=(const snd_player&) = delete;
 
-    //snd_player(snd_player&& other) noexcept = default;
-    //snd_player& operator=(snd_player&& other) noexcept = default;
+    // snd_player(snd_player&& other) noexcept = default;
+    // snd_player& operator=(snd_player&& other) noexcept = default;
 
     u32 load_bank(std::filesystem::path path);
     void load_midi(std::fstream& in);
     void play_sound(u32 bank, u32 sound);
-
-    // TODO this shouldn't be public, figure something out
-    void tick(s16_output* stream, int samples);
+    void set_midi_reg(u8 reg, u8 value);
 
 
     SoundBank& get_bank(u32 id) override;
+
 private:
     std::recursive_mutex m_ticklock; // TODO does not need to recursive with some light restructuring
     std::forward_list<std::unique_ptr<sound_handler>> m_handlers;
@@ -128,6 +126,7 @@ private:
 
     void play_midi(MIDISound& sound, s32 vol, s32 pan);
     void play_ame(MIDISound& sound, s32 vol, s32 pan);
+    void tick(s16_output* stream, int samples);
 
     synth m_synth;
 

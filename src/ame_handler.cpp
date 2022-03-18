@@ -8,8 +8,8 @@ ame_handler::ame_handler(MultiMIDIBlockHeader* block, synth& synth, s32 vol, s32
     , m_synth(synth)
     , m_vol(vol)
     , m_pan(pan)
-    , m_group(group)
     , m_repeats(repeats)
+    , m_group(group)
 {
     auto firstblock = (MIDIBlockHeader*)(block->BlockPtr[0] + (uintptr_t)block);
 

@@ -63,7 +63,7 @@ void midi_handler::note_on()
         return;
     }
 
-    // fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
+    fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
 
     // Key on all the applicable tones for the program
     auto& bank = m_locator.get_bank(m_header->BankID);
@@ -150,6 +150,7 @@ void midi_handler::meta_event()
 
     if (*m_seq_ptr == 0x51) {
         m_tempo = (m_seq_ptr[2] << 16) | (m_seq_ptr[3] << 8) | (m_seq_ptr[4]);
+
     }
 
     m_seq_ptr += len + 2;
@@ -176,10 +177,6 @@ void midi_handler::system_event()
         break;
     default:
         throw midi_error(fmt::format("Unknown system message {:02x}", *m_seq_ptr));
-        // while (*m_seq_ptr != 0xf7) {
-        //     m_seq_ptr++;
-        // }
-        // m_seq_ptr++;
     }
 }
 
@@ -208,8 +205,16 @@ void midi_handler::new_delta(bool reset)
     m_seq_ptr += len;
     m_time += delta;
 
-    auto delta_mics = m_tempo * delta / m_ppq;
-    m_tick_countdown = delta_mics / mics_per_tick;
+    m_ppt = 100 * mics_per_tick / (m_tempo / m_ppq);
+    m_tickdelta = 100 * delta + m_tickerror;
+    if (m_tickdelta < 0 || m_tickdelta < m_ppt / 2) {
+        m_tickerror = m_tickdelta;
+        m_tickdelta = 0;
+    }
+    if (m_tickdelta != 0) {
+        m_tick_countdown = (m_tickdelta / 100 * m_tempo / m_ppq - 1 + mics_per_tick) / mics_per_tick;
+        m_tickerror = m_tickdelta - m_ppt * m_tick_countdown;
+    }
 }
 
 void midi_handler::step()
@@ -224,13 +229,6 @@ void midi_handler::step()
     while (!m_tick_countdown && !m_track_complete) {
         // running status, new events always have top bit
         if (*m_seq_ptr & 0x80) {
-
-            // fmt::print("\n");
-            // for (int i = -2; i < 10; i++) {
-            //     fmt::print("{:02x} ", m_seq_ptr[i]);
-            // }
-            // fmt::print("\n");
-
             m_status = *m_seq_ptr;
             m_seq_ptr++;
         }
