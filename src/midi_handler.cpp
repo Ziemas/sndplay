@@ -168,7 +168,7 @@ void midi_handler::system_event()
             m_seq_ptr = ptr;
 
             if (!cont) {
-                fmt::print("track stopped by ame\n");
+                fmt::print("{:x} track stopped by ame\n", (u64)this);
                 m_track_complete = true;
             }
         } else {

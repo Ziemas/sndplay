@@ -41,9 +41,9 @@ void ame_handler::stop_segment(u32 id)
 
 #define AME_BEGIN(op)                      \
     fmt::print("ame trace: {:x}\n", (op)); \
-    if (cmp_fail) {                        \
-        if (cmp_fail == 1) {               \
-            cmp_fail = 0;                  \
+    if (skip) {                            \
+        if (skip == 1) {                   \
+            skip = 0;                      \
         }                                  \
     } else                                 \
         do {
@@ -56,60 +56,62 @@ void ame_handler::stop_segment(u32 id)
 
 std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
 {
-    int cmp_fail = 0;
+    int skip = 0;
     bool done = false;
     bool cont = true;
 
     while (!done) {
-        // auto op = static_cast<ame_op>(*stream++);
         auto op = static_cast<u8>(*stream++);
         switch (op) {
         case 0x0: {
             AME_BEGIN(op)
             if (m_excite <= (stream[0] + 1)) {
-                cmp_fail = 1;
+                skip = 1;
             }
             AME_END(1)
         } break;
         case 0x1: {
             AME_BEGIN(op)
             if (m_excite != (stream[0] + 1)) {
-                cmp_fail = 1;
+                skip = 1;
             }
             AME_END(1)
         } break;
         case 0x2: {
             AME_BEGIN(op)
             if (m_excite > (stream[0] + 1)) {
-                cmp_fail = 1;
+                skip = 1;
             }
             AME_END(1)
         } break;
         case 0x4: {
-            if (cmp_fail == 1) {
-                cmp_fail = 2;
+            fmt::print("ame trace 4\n");
+            if (skip == 1) {
+                skip = 2;
             }
         } break;
         case 0x5: {
-            if (cmp_fail == 2) {
-                cmp_fail = 0;
+            fmt::print("ame trace 5\n");
+            if (skip == 2) {
+                skip = 0;
             }
         } break;
         case 0x6: {
             AME_BEGIN(op)
             if (m_register[stream[0]] > (stream[1] - 1)) {
-                cmp_fail = 1;
+                skip = 1;
             }
             AME_END(2)
         } break;
         case 0x7: {
             AME_BEGIN(op)
             if (m_register[stream[0]] < (stream[1] + 1)) {
-                cmp_fail = 1;
+                skip = 1;
             }
             AME_END(2)
         } break;
         case 0xB: {
+            fmt::print("ame trace b\n");
             m_macro[stream[0]] = &stream[1];
             while (*stream != 0xf7) {
                 stream++;
@@ -118,7 +120,7 @@ std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
         } break;
         case 0xc: {
             AME_BEGIN(op)
-            auto [sub_cont, ptr] = run_ame(midi, &stream[0]);
+            auto [sub_cont, ptr] = run_ame(midi, m_macro[stream[0]]);
             if (!sub_cont) {
                 cont = false;
                 done = true;
@@ -138,24 +140,21 @@ std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
             AME_END(1)
         } break;
         case 0xf: {
-            if (cmp_fail) {
+            fmt::print("ame trace f\n");
+            if (skip) {
                 while (*stream != 0x7f) {
                     stream++;
                 }
                 stream++;
-                if (cmp_fail == 1)
-                    cmp_fail = 0;
+                if (skip == 1)
+                    skip = 0;
             } else {
                 auto group = *stream++;
-                fmt::print("getting groupinfo for {}\n", group);
                 m_groups[group].basis = *stream++;
                 u8 channel = 0;
                 while (*stream != 0xf7) {
-                    fmt::print("group {} channel {}:{}\n", group, channel, *stream);
                     m_groups[group].channel[channel] = *stream++;
-                    fmt::print("group {} channel {} min {}\n", group, channel, *stream);
                     m_groups[group].excite_min[channel] = *stream++;
-                    fmt::print("group {} channel {} max {}\n", group, channel, *stream);
                     m_groups[group].excite_max[channel] = *stream++;
                     channel++;
                 }
@@ -166,16 +165,13 @@ std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
         case 0x10: {
             AME_BEGIN(op)
             u8 group = stream[0];
-            // fmt::print("setting group {}\n", group);
             u8 comp = 0;
             if (m_groups[group].basis == 0) {
                 comp = m_excite;
             } else {
                 comp = m_register[m_groups[group].basis - 1];
-                // fmt::print("reg[{}] {}\n", m_groups[group].basis - 1, comp);
             }
             for (int i = 0; i < m_groups[group].num_channels; i++) {
-                // fmt::print("channel setup {} min{} cmp{} max{}\n", i, m_groups[group].excite_min[i], comp, m_groups[group].excite_max[i]);
                 if ((m_groups[group].excite_min[i] - 1 >= comp) || (m_groups[group].excite_max[i] + 1 <= comp)) {
                     midi.mute_channel(m_groups[group].channel[i]);
                 } else {
@@ -218,7 +214,7 @@ std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
         case 0x16: {
             AME_BEGIN(op)
             if (m_register[stream[0]] != stream[1]) {
-                cmp_fail = 1;
+                skip = 1;
             }
             AME_END(2)
         } break;

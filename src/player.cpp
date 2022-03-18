@@ -52,7 +52,7 @@ void snd_player::tick(s16_output* stream, int samples)
         // 48000/240 = 200
         if (htick == 200) {
             for (auto& handler : m_handlers) {
-                bool done = handler.get()->tick();
+                /*bool done = */handler.get()->tick();
 
                 // clean up handlers here
                 // if (done) {
