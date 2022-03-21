@@ -1,8 +1,6 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
-#define UUID_SYSTEM_GENERATOR
 #include "loader.h"
-#include "uuid.h"
 #include <fmt/format.h>
 #include <fstream>
 
@@ -19,11 +17,40 @@ enum chunk : u32 {
 u32 loader::read_music_bank(SoundBankData* data)
 {
     fmt::print("Loading music bank {:.4}\n", (char*)&data->BankID);
-    uuids::uuid id = uuids::uuid_system_generator{}();
-    auto bla = std::hash<uuids::uuid>{};
+    SoundBank bank;
+    bank.d = *data;
 
+    auto sound = (MIDISound*)((uintptr_t)data + data->FirstSound);
+    for (int i = 0; i < data->NumSounds; i++) {
+        bank.sounds.emplace_back(sound[i]);
+        fmt::print("Adding sound {:.4s}\n", (char*)&sound->MIDIID);
+    }
 
-    return 0;
+    auto progdata = (ProgData*)((uintptr_t)data + data->FirstProg);
+    for (int i = 0; i < data->NumProgs; i++) {
+        Prog prog;
+        prog.d = progdata[i];
+        fmt::print("prog {}, {} tones first: {}\n", i, prog.d.NumTones, prog.d.FirstTone);
+        bank.programs.emplace_back(std::move(prog));
+    }
+
+    for (auto& prog : bank.programs) {
+        auto tonedata = (Tone*)((uintptr_t)data + prog.d.FirstTone);
+        for (int i = 0; i < prog.d.NumTones; i++) {
+            Tone tone = tonedata[i];
+            tone.BankID = bank.d.BankID;
+            // I like to think of SPU ram in terms of shorts, since that's the least addressable unit on it.
+            tone.VAGInSR >>= 1;
+            prog.tones.emplace_back(tone);
+            fmt::print("tone {} vaginsr {:x}\n", i, tone.VAGInSR);
+        }
+    }
+
+    fmt::print("loaded {} programs and their tones\n", bank.programs.size());
+
+    u32 bank_id = bank.d.BankID;
+    m_soundbanks.emplace(bank_id, std::move(bank));
+    return bank_id;
 }
 
 u32 loader::read_sfx_bank(SFXBlockData* data)
@@ -72,61 +99,17 @@ u32 loader::read_bank(std::fstream& in)
         throw std::runtime_error("Unknown bank ID, bad file?");
     }
 
-    /*
-    in.seekg(attr.where[chunk::bank].offset, std::fstream::beg);
-
-    in.read((char*)&bank.d, sizeof(bank.d));
-
-    in.seekg(attr.where[chunk::bank].offset + bank.d.FirstSound, std::fstream::beg);
-    for (int i = 0; i < bank.d.NumSounds; i++) {
-        MIDISound sound;
-        in.read((char*)&sound, sizeof(sound));
-        bank.sounds.emplace_back(sound);
-    }
-
-    fmt::print("loaded {} sound(s)\n", bank.sounds.size());
-
-    in.seekg(attr.where[chunk::bank].offset + bank.d.FirstProg, std::fstream::beg);
-    for (int i = 0; i < bank.d.NumProgs; i++) {
-        Prog prog;
-        in.read((char*)&prog.d, sizeof(prog.d));
-        bank.programs.emplace_back(std::move(prog));
-    }
-
-    for (auto& prog : bank.programs) {
-        for (int i = 0; i < prog.d.NumTones; i++) {
-            in.seekg(attr.where[chunk::bank].offset + prog.d.FirstTone, std::fstream::beg);
-            for (int i = 0; i < prog.d.NumTones; i++) {
-                Tone tone;
-                in.read((char*)&tone, sizeof(tone));
-                tone.BankID = bank.d.BankID;
-                // I like to think of SPU ram in terms of shorts, since that's the least addressable unit on it.
-                tone.VAGInSR >>= 1;
-                prog.tones.emplace_back(tone);
-                fmt::print("tone {} vaginsr {:x}\n", i, tone.VAGInSR);
-            }
-        }
-    }
-
-    fmt::print("loaded {} programs and their tones\n", bank.programs.size());
-
     if (attr.num_chunks >= 2) {
         in.seekg(attr.where[chunk::samples].offset, std::fstream::beg);
         auto samples = std::make_unique<u8[]>(attr.where[chunk::samples].size);
         in.read((char*)samples.get(), attr.where[chunk::samples].size);
-        load_samples(bank.d.BankID, std::move(samples));
+        load_samples(bank_id, std::move(samples));
     }
-
-    fmt::print("vaginsr {:x}\n", bank.d.VagsInSR);
 
     if (attr.num_chunks >= 3) {
         in.seekg(attr.where[chunk::midi].offset, std::fstream::beg);
         load_midi(in);
     }
-
-    u32 id = bank.d.BankID;
-    m_soundbanks.emplace(id, std::move(bank));
-    */
 
     return bank_id;
 }
