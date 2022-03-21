@@ -1,6 +1,8 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
+#define UUID_SYSTEM_GENERATOR
 #include "loader.h"
+#include "uuid.h"
 #include <fmt/format.h>
 #include <fstream>
 
@@ -11,8 +13,23 @@ enum chunk : u32 {
     midi
 };
 
-u32 loader::read_sfx_bank(SoundBankData* data) { return 0; }
-u32 loader::read_music_bank(SFXBlockData* data) { return 0; }
+#define FOURCC(a, b, c, d) \
+    ((u32)(((d) << 24) | ((c) << 16) | ((b) << 8) | (a)))
+
+u32 loader::read_music_bank(SoundBankData* data)
+{
+    fmt::print("Loading music bank {:.4}\n", (char*)&data->BankID);
+    uuids::uuid id = uuids::uuid_system_generator{}();
+    auto bla = std::hash<uuids::uuid>{};
+
+
+    return 0;
+}
+
+u32 loader::read_sfx_bank(SFXBlockData* data)
+{
+    return 0;
+}
 
 u32 loader::read_bank(std::fstream& in)
 {
@@ -40,11 +57,25 @@ u32 loader::read_bank(std::fstream& in)
         attr.where[chunk::bank].size += 4;
     }
 
-    SoundBank bank;
+    auto pos = in.tellg();
+    auto bank_buf = std::make_unique<u8[]>(attr.where[chunk::bank].size);
+    in.read((char*)bank_buf.get(), attr.where[chunk::bank].size);
+    auto bank = (BankTag*)bank_buf.get();
 
+    u32 bank_id = 0;
+
+    if (bank->DataID == FOURCC('S', 'B', 'v', '2')) {
+        bank_id = read_music_bank((SoundBankData*)bank_buf.get());
+    } else if (bank->DataID == FOURCC('S', 'B', 'l', 'k')) {
+        bank_id = read_sfx_bank((SFXBlockData*)bank_buf.get());
+    } else {
+        throw std::runtime_error("Unknown bank ID, bad file?");
+    }
+
+    /*
     in.seekg(attr.where[chunk::bank].offset, std::fstream::beg);
+
     in.read((char*)&bank.d, sizeof(bank.d));
-    fmt::print("{:.4}\n", (char*)&bank.d.BankID);
 
     in.seekg(attr.where[chunk::bank].offset + bank.d.FirstSound, std::fstream::beg);
     for (int i = 0; i < bank.d.NumSounds; i++) {
@@ -69,7 +100,7 @@ u32 loader::read_bank(std::fstream& in)
                 Tone tone;
                 in.read((char*)&tone, sizeof(tone));
                 tone.BankID = bank.d.BankID;
-                // I like to think of SPU ram in terms of shorts, since that's the least addressable unit on ti.
+                // I like to think of SPU ram in terms of shorts, since that's the least addressable unit on it.
                 tone.VAGInSR >>= 1;
                 prog.tones.emplace_back(tone);
                 fmt::print("tone {} vaginsr {:x}\n", i, tone.VAGInSR);
@@ -95,8 +126,9 @@ u32 loader::read_bank(std::fstream& in)
 
     u32 id = bank.d.BankID;
     m_soundbanks.emplace(id, std::move(bank));
+    */
 
-    return id;
+    return bank_id;
 }
 
 void loader::load_midi(std::fstream& in)

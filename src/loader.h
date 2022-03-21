@@ -5,8 +5,13 @@
 #include "types.h"
 #include <filesystem>
 #include <memory>
+#include <vector>
 
 namespace snd {
+
+#define FOURCC(a, b, c, d) \
+    ((u32)(((d) << 24) | ((c) << 16) | ((b) << 8) | (a)))
+
 struct BankTag {
     /*   0 */ u32 DataID;
     /*   4 */ u32 Version;
@@ -182,8 +187,8 @@ public:
 
 private:
     void load_samples(u32 bank, std::unique_ptr<u8[]> samples);
-    u32 read_sfx_bank(SoundBankData* data);
-    u32 read_music_bank(SFXBlockData* data);
+    u32 read_music_bank(SoundBankData* data);
+    u32 read_sfx_bank(SFXBlockData* data);
 
     std::unordered_map<u32, std::unique_ptr<u8[]>> m_bank_samples;
 

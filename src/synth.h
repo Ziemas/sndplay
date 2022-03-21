@@ -28,6 +28,9 @@ struct Tone {
     /*   e */ s16 Flags;
     /*  10 */ /*void**/ u32 VAGInSR;
     ///*  14 */ u32 reserved1; confiscated
+
+    // FIXME I'd rather restructure things than mess about like this.
+    // If we have to edit the structs they should't be loaded like this
     /*  14 */ u32 BankID;
 };
 

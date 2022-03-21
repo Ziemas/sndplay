@@ -368,4 +368,5 @@ u16 PS1Note2Pitch(s8 center_note, s8 center_fine, short note, short fine)
 
     return pitch;
 }
+
 }

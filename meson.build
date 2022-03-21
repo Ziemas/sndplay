@@ -3,6 +3,8 @@ project('sndplay', 'cpp', default_options : ['cpp_std=c++20'])
 sdl = dependency('SDL2')
 fmt = dependency('fmt')
 threads = dependency('threads')
+uuid = dependency('uuid')
+
 
 sources = files([
     'src/sndplay.cpp',
@@ -16,4 +18,4 @@ sources = files([
     'src/util.cpp',
 ])
 
-executable('sndplay', sources, dependencies : [sdl, fmt, threads])
+executable('sndplay', sources, dependencies : [sdl, fmt, threads, uuid])
