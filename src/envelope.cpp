@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 
+namespace snd {
 void Envelope::Step()
 {
     // arbitrary number of bits, this is probably incorrect for the
@@ -168,4 +169,5 @@ u16 Volume::Get() const
 s16 Volume::GetCurrent() const
 {
     return static_cast<s16>(m_Level);
+}
 }

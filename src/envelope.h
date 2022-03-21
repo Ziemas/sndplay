@@ -5,6 +5,7 @@
 #include "bitfield.h"
 #include "types.h"
 
+namespace snd {
 union ADSRReg {
     u32 bits;
 
@@ -130,3 +131,4 @@ struct VolumePair {
         right.Reset();
     }
 };
+}

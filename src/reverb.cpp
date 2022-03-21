@@ -3,7 +3,7 @@
 #include "Reverb.h"
 #include "SpuCore.h"
 
-namespace SPU
+namespace snd
 {
 	static constexpr u32 NUM_TAPS = 39;
 	static constexpr std::array<s32, NUM_TAPS> FilterCoefficients = {

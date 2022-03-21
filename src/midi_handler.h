@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: ISC
 #pragma once
 #include "ame_handler.h"
-#include "player.h"
+#include "loader.h"
 #include "sound_handler.h"
 #include "synth.h"
 #include "types.h"
@@ -12,42 +12,12 @@
 #include <string>
 #include <utility>
 
-struct MIDIBlockHeader {
-    /*   0 */ u32 DataID;
-    /*   4 */ s16 Version;
-    /*   6 */ s8 Flags;
-    /*   7 */ s8 pad1;
-    /*   8 */ u32 ID;
-    /*   c */ /*void**/ u32 NextMIDIBlock;
-    /*  10 */ u32 BankID;
-    /*  14 */ /*SoundBank**/ u32 BankPtr;
-    /*  18 */ /*s8**/ u32 DataStart;
-    /*  1c */ /*s8**/ u32 MultiMIDIParent;
-    /*  20 */ u32 Tempo;
-    /*  24 */ u32 PPQ;
-};
-
+namespace snd {
 class ame_handler;
 
 class midi_handler : public sound_handler {
 public:
-    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, u32 group, locator& loc)
-        : m_locator(loc)
-        , m_vol(vol)
-        , m_pan(pan)
-        , m_repeats(repeats)
-        , m_header(block)
-        , m_group(group)
-        , m_synth(synth)
-    {
-        m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
-        m_seq_ptr = m_seq_data_start;
-        m_tempo = block->Tempo;
-        m_ppq = block->PPQ;
-        m_chanvol.fill(0x7f);
-    };
-
-    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, u32 group, locator& loc, ame_handler* parent)
+    midi_handler(MIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, u32 group, locator& loc, std::optional<ame_handler*> parent = std::nullopt)
         : m_parent(parent)
         , m_locator(loc)
         , m_vol(vol)
@@ -57,16 +27,11 @@ public:
         , m_group(group)
         , m_synth(synth)
     {
-        // fmt::print("spawning midi handler at {:x}\n", (u64)this);
         m_seq_data_start = (u8*)((uintptr_t)block + (uintptr_t)block->DataStart);
         m_seq_ptr = m_seq_data_start;
         m_tempo = block->Tempo;
         m_ppq = block->PPQ;
-
         m_chanvol.fill(0x7f);
-
-        fmt::print("added new midi handler {:x}\n", (u64)this);
-        fmt::print("tempo:{:x} ppq:{} repeats:{} \n", m_tempo, m_ppq, repeats);
     };
 
     void start();
@@ -129,7 +94,7 @@ private:
     synth& m_synth;
 
     void step();
-    void new_delta(bool reset);
+    void new_delta();
 
     void note_on();
     void note_off();
@@ -141,3 +106,4 @@ private:
 
     static std::pair<size_t, u32> read_vlq(u8* value);
 };
+}

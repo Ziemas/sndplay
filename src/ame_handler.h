@@ -1,6 +1,7 @@
 // Copyright: 2021 - 2021, Ziemas
 // SPDX-License-Identifier: ISC
 #pragma once
+#include "loader.h"
 #include "midi_handler.h"
 #include "sound_handler.h"
 #include "synth.h"
@@ -8,15 +9,7 @@
 #include <array>
 #include <forward_list>
 
-struct MultiMIDIBlockHeader {
-    /*   0 */ u32 DataID;
-    /*   4 */ s16 Version;
-    /*   6 */ s8 Flags;
-    /*   7 */ s8 NumMIDIBlocks;
-    /*   8 */ u32 ID;
-    /*   c */ /*void**/ u32 NextMIDIBlock;
-    /*  10 */ /*s8**/ u32 BlockPtr[1];
-};
+namespace snd {
 
 class midi_handler;
 class ame_handler : public sound_handler {
@@ -48,7 +41,6 @@ private:
         }
     };
 
-#pragma pack(push, 1)
     struct GroupDescription {
         /*   0 */ s8 num_channels;
         /*   1 */ s8 basis;
@@ -57,7 +49,6 @@ private:
         /*  14 */ s8 excite_min[16];
         /*  24 */ s8 excite_max[16];
     };
-#pragma pack(pop)
 
     void start_segment(u32 id);
     void stop_segment(u32 id);
@@ -78,3 +69,4 @@ private:
     std::array<u8, 16> m_register {};
     std::array<u8*, 16> m_macro {};
 };
+}

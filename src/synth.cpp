@@ -1,12 +1,8 @@
 #include "synth.h"
-#include "player.h"
+#include "loader.h"
 #include "util.h"
 
-void synth::load_samples(u32 bank, std::unique_ptr<u8[]> samples)
-{
-    // m_bank_samples.emplace(bank, std::move(samples));
-    m_tmp_samples = std::move(samples);
-}
+namespace snd {
 
 s16_output synth::tick()
 {
@@ -37,27 +33,27 @@ static std::pair<s16, s16> pitchbend(Tone& tone, int current_pb, int current_pm,
 
 s16 synth::adjust_vol_to_group(s16 involume, int group)
 {
-    auto volume = involume;
+    s32 volume = involume;
     if (group >= 15)
         return volume;
 
     if (volume >= 0x7fff)
         volume = 0x7ffe;
 
-    auto modifier = (m_master_vol[group] * m_group_duck[group]) / 0x10000;
+    s32 modifier = (m_master_vol[group] * m_group_duck[group]) / 0x10000;
     volume = (volume * modifier) / 0x400;
     int sign = 1;
     if (volume < 0) {
         sign = -1;
     }
 
-    //fmt::print("made volume {:x} -> {:x}\n", involume, volume);
-    return ((volume * volume) / 0x7ffe) * sign;
+    // fmt::print("made volume {:x} -> {:x}\n", involume, volume);
+    return static_cast<s16>((volume * volume) / 0x7ffe * sign);
 }
 
 void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner, u32 group)
 {
-    auto v = std::make_unique<voice>((u16*)(m_tmp_samples.get() + tone.VAGInSR), channel, owner, note);
+    auto v = std::make_unique<voice>((u16*)(m_locator.get_bank_samples(tone.BankID) + tone.VAGInSR), channel, owner, note);
 
     v->set_volume(adjust_vol_to_group(volume.left, group) >> 1,
         adjust_vol_to_group(volume.right, group) >> 1);
@@ -82,4 +78,5 @@ void synth::key_off(u8 channel, u8 note, u64 owner)
             v->key_off();
         }
     }
+}
 }

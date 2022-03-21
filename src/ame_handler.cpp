@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: ISC
 #include "ame_handler.h"
 
+namespace snd {
+
 ame_handler::ame_handler(MultiMIDIBlockHeader* block, synth& synth, s32 vol, s32 pan, s8 repeats, u32 group, locator& loc)
     : m_header(block)
     , m_locator(loc)
@@ -233,5 +235,6 @@ std::pair<bool, u8*> ame_handler::run_ame(midi_handler& midi, u8* stream)
     return { cont, stream };
 }
 
+}
 #undef AME_BEGIN
 #undef AME_END

@@ -5,6 +5,7 @@
 #include <array>
 #include <fmt/format.h>
 
+namespace snd {
 #include "interp_table.inc"
 
 // Integer math version of ps-adpcm coefs
@@ -141,4 +142,5 @@ s16_output voice::run()
     m_Volume.Run();
 
     return s16_output { left, right };
+}
 }

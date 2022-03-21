@@ -7,6 +7,8 @@
 #include "types.h"
 #include <fmt/core.h>
 
+namespace snd {
+
 class voice {
 public:
     voice(u16* sample, u8 channel, u64 owner, u8 note)
@@ -47,8 +49,8 @@ public:
     }
     void set_volume(u16 left, u16 right)
     {
-        //fmt::print("VOICE[{}] VOLL WRITE {:x}\n", m_channel, left);
-        //fmt::print("VOICE[{}] VOLR WRITE {:x}\n", m_channel, right);
+        // fmt::print("VOICE[{}] VOLL WRITE {:x}\n", m_channel, left);
+        // fmt::print("VOICE[{}] VOLR WRITE {:x}\n", m_channel, right);
         m_Volume.left.Set(left);
         m_Volume.right.Set(right);
     }
@@ -91,3 +93,4 @@ private:
     ADSR m_ADSR {};
     VolumePair m_Volume {};
 };
+}

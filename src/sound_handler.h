@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: ISC
 #pragma once
 
+namespace snd {
 class sound_handler {
 public:
     virtual ~sound_handler() = default;
@@ -9,3 +10,4 @@ public:
 
 private:
 };
+}

@@ -2,11 +2,13 @@
 
 int main(int argc, char* argv[])
 {
-    snd_player player;
-    u32 bankid = 0;
+    snd::player player;
+    unsigned bankid = 0;
+
+    std::filesystem::path file = argv[1];
 
     if (argc > 1) {
-        bankid = player.load_bank(argv[1]);
+        bankid = player.load_bank(file, 0);
         player.play_sound(bankid, 0);
     }
 

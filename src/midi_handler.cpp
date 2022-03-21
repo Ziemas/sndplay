@@ -7,6 +7,7 @@
 #include <fmt/format.h>
 #include <pthread.h>
 
+namespace snd {
 /*
 ** In the original 989snd, the player struct can live in different places
 ** depending on the type of file.
@@ -150,7 +151,6 @@ void midi_handler::meta_event()
 
     if (*m_seq_ptr == 0x51) {
         m_tempo = (m_seq_ptr[2] << 16) | (m_seq_ptr[3] << 8) | (m_seq_ptr[4]);
-
     }
 
     m_seq_ptr += len + 2;
@@ -198,7 +198,7 @@ bool midi_handler::tick()
     return m_track_complete;
 }
 
-void midi_handler::new_delta(bool reset)
+void midi_handler::new_delta()
 {
     auto [len, delta] = read_vlq(m_seq_ptr);
 
@@ -220,7 +220,7 @@ void midi_handler::new_delta(bool reset)
 void midi_handler::step()
 {
     if (m_get_delta) {
-        new_delta(true);
+        new_delta();
         m_get_delta = false;
     } else {
         m_tick_countdown--;
@@ -264,6 +264,7 @@ void midi_handler::step()
             return;
         }
 
-        new_delta(false);
+        new_delta();
     }
+}
 }

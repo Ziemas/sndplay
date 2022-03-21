@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: ISC
 #include "util.h"
 
+namespace snd {
 static u16 NotePitchTable[] = {
     0x8000, 0x879C, 0x8FAC, 0x9837, 0xA145, 0xAADC, 0xB504,
     0xBFC8, 0xCB2F, 0xD744, 0xE411, 0xF1A1, 0x8000, 0x800E,
@@ -25,7 +26,7 @@ static u16 NotePitchTable[] = {
     0x872E, 0x873E, 0x874E, 0x875D, 0x876D, 0x877D, 0x878C
 };
 
-static vol_pair PanTable[] = {
+[[maybe_unused]] static std::array<vol_pair, 181> normalPanTable[] = {
     { 0x3fff, 0x0000 },
     { 0x3ffe, 0x008e },
     { 0x3ffc, 0x011d },
@@ -208,6 +209,33 @@ static vol_pair PanTable[] = {
     { 0x008e, 0x3ffe },
 };
 
+static constexpr std::array<vol_pair, 361> genpan()
+{
+    std::array<vol_pair, 361> gPanTable;
+    for (int i = 0; i < 91; i++) {
+        s32 opposing_front = ((i * 0x33ff) / 0x5a) + 0xc00;
+
+        s32 rear_right = ((i * -0x2800) / 0x5a) + 0x3400;
+        s32 rear_left = ((i * -0xbff) / 0x5a) + 0x3fff;
+
+        gPanTable[90 - i].left = 0x3FFF;
+        gPanTable[180 - i].left = opposing_front;
+        gPanTable[270 - i].left = rear_right;
+        gPanTable[360 - i].left = rear_left;
+
+        gPanTable[i].right = opposing_front;
+        gPanTable[90 + i].right = 0x3FFF;
+        gPanTable[180 + i].right = rear_left;
+        gPanTable[270 + i].right = rear_right;
+    }
+
+    return gPanTable;
+}
+
+static constexpr std::array<vol_pair, 361> jak_pan = genpan();
+
+const vol_pair* PanTable = &jak_pan[0];
+
 vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, int prog_pan, int tone_vol, int tone_pan)
 {
     // TODO configurable, low prio
@@ -216,15 +244,14 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
     // Scale up as close as we can to max positive 16bit volume
     // I'd have just used shifting but I guess this does get closer
 
-
-    //fmt::print("input {:x} {:x} {:x} {:x}\n", sound_vol, velocity_volume, prog_vol, tone_vol);
+    // fmt::print("input {:x} {:x} {:x} {:x}\n", sound_vol, velocity_volume, prog_vol, tone_vol);
 
     s32 vol = sound_vol * 258;
     vol = (vol * velocity_volume) / 0x7f;
     vol = (vol * prog_vol) / 0x7f;
     vol = (vol * tone_vol) / 0x7f;
 
-    //fmt::print("out {:x}\n", vol);
+    // fmt::print("out {:x}\n", vol);
     if (vol == 0) {
         return { 0, 0 };
     }
@@ -251,6 +278,10 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
     // fmt::print("total pan {}\n", total_pan);
     s16 lvol = 0;
     s16 rvol = 0;
+
+    // TODO Presumable for the purposes of some effects this function needs
+    // to know the sign of the previous volume so that it can maintain
+    // it. (For surround audio positioning?)
 
     if (total_pan >= 180) {
         rvol = (PanTable[total_pan - 180].left * vol) / 0x3fff;
@@ -336,4 +367,5 @@ u16 PS1Note2Pitch(s8 center_note, s8 center_fine, short note, short fine)
     }
 
     return pitch;
+}
 }

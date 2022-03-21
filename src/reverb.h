@@ -5,7 +5,7 @@
 #include "fifo.h"
 #include "util.h"
 
-namespace SPU
+namespace snd
 {
 	class SPUCore;
 

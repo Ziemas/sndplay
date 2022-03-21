@@ -7,6 +7,7 @@
 #include <memory>
 #include <unordered_map>
 
+namespace snd {
 enum class toneflag : u16 {
     out_reverb = 1,
     out_dry = 0x10,
@@ -26,7 +27,8 @@ struct Tone {
     /*   c */ s16 ADSR2;
     /*   e */ s16 Flags;
     /*  10 */ /*void**/ u32 VAGInSR;
-    /*  14 */ u32 reserved1;
+    ///*  14 */ u32 reserved1; confiscated
+    /*  14 */ u32 BankID;
 };
 
 struct ProgData {
@@ -91,7 +93,8 @@ struct Prog {
 
 class synth {
 public:
-    synth()
+    synth(locator& loc)
+        : m_locator(loc)
     {
         m_master_vol.fill(0x400);
         m_group_duck.fill(0x10000);
@@ -101,14 +104,13 @@ public:
     void key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner, u32 group);
     void key_off(u8 channel, u8 note, u64 owner);
 
-    void load_samples(u32 bank, std::unique_ptr<u8[]>);
-
 private:
     std::array<s32, 32> m_master_vol;
     std::array<s32, 32> m_group_duck;
-    std::unique_ptr<u8[]> m_tmp_samples;
-    // std::unordered_map<u32, std::unique_ptr<u8[]>> m_bank_samples;
+    locator& m_locator;
+
     std::forward_list<std::unique_ptr<voice>> m_voices;
 
     s16 adjust_vol_to_group(s16 volume, int group);
 };
+}
