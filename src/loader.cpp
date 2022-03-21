@@ -11,6 +11,9 @@ enum chunk : u32 {
     midi
 };
 
+u32 loader::read_sfx_bank(SoundBankData* data) { return 0; }
+u32 loader::read_music_bank(SFXBlockData* data) { return 0; }
+
 u32 loader::read_bank(std::fstream& in)
 {
     FileAttributes<3> attr;
@@ -66,6 +69,8 @@ u32 loader::read_bank(std::fstream& in)
                 Tone tone;
                 in.read((char*)&tone, sizeof(tone));
                 tone.BankID = bank.d.BankID;
+                // I like to think of SPU ram in terms of shorts, since that's the least addressable unit on ti.
+                tone.VAGInSR >>= 1;
                 prog.tones.emplace_back(tone);
                 fmt::print("tone {} vaginsr {:x}\n", i, tone.VAGInSR);
             }
