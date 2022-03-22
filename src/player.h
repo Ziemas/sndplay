@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: ISC
 #pragma once
 #include "ame_handler.h"
+#include "cubeb/cubeb.h"
 #include "midi_handler.h"
 #include "sound_handler.h"
-#include "src/loader.h"
+#include "loader.h"
 #include "synth.h"
 #include "types.h"
-#include <SDL.h>
 #include <filesystem>
 #include <forward_list>
 #include <memory>
@@ -43,7 +43,10 @@ private:
     loader m_loader;
     synth m_synth;
 
-    SDL_AudioDeviceID m_dev {};
-    static void sdl_callback(void* userdata, u8* stream, int len);
+    cubeb* m_ctx { nullptr };
+    cubeb_stream* m_stream { nullptr };
+
+    static long sound_callback(cubeb_stream* stream, void* user, const void* input, void* output_buffer, long len);
+    static void state_callback(cubeb_stream* stream, void* user, cubeb_state state);
 };
 }

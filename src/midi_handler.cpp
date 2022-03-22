@@ -3,7 +3,6 @@
 #include "midi_handler.h"
 #include "ame_handler.h"
 #include "util.h"
-#include <SDL.h>
 #include <fmt/format.h>
 #include <pthread.h>
 

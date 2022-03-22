@@ -1,6 +1,9 @@
 project('sndplay', 'cpp', default_options : ['cpp_std=c++20'])
 
-sdl = dependency('SDL2')
+cmake = import('cmake')
+cubeb_proj = cmake.subproject('cubeb')
+cubeb = cubeb_proj.dependency('cubeb')
+
 fmt = dependency('fmt')
 threads = dependency('threads')
 uuid = dependency('uuid')
@@ -18,4 +21,4 @@ sources = files([
     'src/util.cpp',
 ])
 
-executable('sndplay', sources, dependencies : [sdl, fmt, threads, uuid])
+executable('sndplay', sources, dependencies : [fmt, threads, uuid, cubeb])
