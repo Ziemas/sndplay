@@ -72,12 +72,13 @@ void midi_handler::note_on()
     for (auto& t : program.tones) {
         if (note >= t.MapLow && note <= t.MapHigh) {
 
-            auto pan = m_chanpan[channel] + m_pan;
+            s16 pan = m_chanpan[channel] + m_pan;
             if (pan >= 360) {
                 pan -= 360;
             }
+
             // TODO passing m_pan here makes stuff sound bad, why?
-            auto volume = make_volume(m_vol, (velocity * m_chanvol[channel]) / 0x7f, t.Pan, program.d.Vol, program.d.Pan, t.Vol, t.Pan);
+            auto volume = make_volume(m_vol, (velocity * m_chanvol[channel]) / 0x7f, pan, program.d.Vol, program.d.Pan, t.Vol, t.Pan);
 
             m_synth.key_on(t, channel, note, volume, (u64)this, m_group);
         }
