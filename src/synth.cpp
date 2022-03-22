@@ -11,8 +11,8 @@ s16_output synth::tick()
         out += v->run();
     }
 
-    out.left *= 0.6;
-    out.right *= 0.6;
+    // out.left *= 0.6;
+    // out.right *= 0.6;
 
     m_voices.remove_if([](std::unique_ptr<voice>& v) { return v->dead(); });
 
@@ -31,6 +31,7 @@ static std::pair<s16, s16> pitchbend(Tone& tone, int current_pb, int current_pm,
     return { v7 / 128, v7 % 128 };
 }
 
+// Seems correct, given same input produces same output as 989snd
 s16 synth::adjust_vol_to_group(s16 involume, int group)
 {
     s32 volume = involume;
@@ -48,15 +49,18 @@ s16 synth::adjust_vol_to_group(s16 involume, int group)
     }
 
     // fmt::print("made volume {:x} -> {:x}\n", involume, volume);
-    return static_cast<s16>((volume * volume) / 0x7ffe * sign);
+    s16 retval = static_cast<s16>((volume * volume) / 0x7ffe * sign);
+    return retval;
 }
 
 void synth::key_on(Tone& tone, u8 channel, u8 note, vol_pair volume, u64 owner, u32 group)
 {
     auto v = std::make_unique<voice>((u16*)(m_locator.get_bank_samples(tone.BankID) + tone.VAGInSR), channel, owner, note);
 
-    v->set_volume(adjust_vol_to_group(volume.left, group) >> 1,
-        adjust_vol_to_group(volume.right, group) >> 1);
+    s16 left = adjust_vol_to_group(volume.left, group);
+    s16 right = adjust_vol_to_group(volume.right, group);
+
+    v->set_volume(left >> 1, right >> 1);
 
     if ((tone.Flags & 0x10) != 0x0) {
         throw std::runtime_error("reverb only voice not handler");

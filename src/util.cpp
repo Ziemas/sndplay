@@ -26,7 +26,7 @@ static u16 NotePitchTable[] = {
     0x872E, 0x873E, 0x874E, 0x875D, 0x876D, 0x877D, 0x878C
 };
 
-[[maybe_unused]] static std::array<vol_pair, 181> normalPanTable[] = {
+[[maybe_unused]] static vol_pair normalPanTable[181] = {
     { 0x3fff, 0x0000 },
     { 0x3ffe, 0x008e },
     { 0x3ffc, 0x011d },
@@ -244,14 +244,12 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
     // Scale up as close as we can to max positive 16bit volume
     // I'd have just used shifting but I guess this does get closer
 
-    // fmt::print("input {:x} {:x} {:x} {:x}\n", sound_vol, velocity_volume, prog_vol, tone_vol);
-
     s32 vol = sound_vol * 258;
     vol = (vol * velocity_volume) / 0x7f;
     vol = (vol * prog_vol) / 0x7f;
     vol = (vol * tone_vol) / 0x7f;
 
-    // fmt::print("out {:x}\n", vol);
+    // volume accurate up to here for sure
     if (vol == 0) {
         return { 0, 0 };
     }
@@ -283,12 +281,18 @@ vol_pair make_volume(int sound_vol, int velocity_volume, int pan, int prog_vol, 
     // to know the sign of the previous volume so that it can maintain
     // it. (For surround audio positioning?)
 
-    if (total_pan >= 180) {
-        rvol = (PanTable[total_pan - 180].left * vol) / 0x3fff;
-        lvol = (PanTable[total_pan - 180].right * vol) / 0x3fff;
-    } else {
+    if (total_pan < 180) {
         lvol = (PanTable[total_pan].left * vol) / 0x3fff;
         rvol = (PanTable[total_pan].right * vol) / 0x3fff;
+    } else {
+        rvol = (PanTable[total_pan - 180].left * vol) / 0x3fff;
+        lvol = (PanTable[total_pan - 180].right * vol) / 0x3fff;
+        fmt::print("big pan\n");
+        if (rvol < lvol) {
+            rvol = -rvol;
+        } else {
+            lvol = -lvol;
+        }
     }
 
     // TODO rest of this function
