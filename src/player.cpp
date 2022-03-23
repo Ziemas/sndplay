@@ -55,23 +55,32 @@ void player::tick(s16_output* stream, int samples)
 {
     std::scoped_lock lock(m_ticklock);
     static int htick = 200;
+    static int stick = 48000;
     for (int i = 0; i < samples; i++) {
         // The handlers expect to tick at 240hz
         // 48000/240 = 200
         if (htick == 200) {
-            for (auto& handler : m_handlers) {
-                /*bool done = */ handler.get()->tick();
-
-                // clean up handlers here
-                // if (done) {
-                //    m_handlers.remove(handler);
-                //}
+            for (auto it = m_handlers.begin(); it != m_handlers.end();) {
+                bool done = it->second->tick();
+                if (done) {
+                    fmt::print("erasing handler\n");
+                    it = m_handlers.erase(it);
+                } else {
+                    ++it;
+                }
             }
 
             htick = 0;
         }
-        htick++;
 
+        if (stick == 48000) {
+
+            fmt::print("{} handlers active\n", m_handlers.size());
+            stick = 0;
+        }
+
+        stick++;
+        htick++;
         *stream++ = m_synth.tick();
     }
 }
