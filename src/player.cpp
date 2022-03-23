@@ -85,7 +85,7 @@ void player::tick(s16_output* stream, int samples)
     }
 }
 
-void player::play_midi(MIDISound& sound, s32 vol, s32 pan)
+u32 player::play_midi(MIDISound& sound, s32 vol, s32 pan)
 {
     s32 lpan = pan;
     if (pan == -1 || pan == -2) {
@@ -93,10 +93,10 @@ void player::play_midi(MIDISound& sound, s32 vol, s32 pan)
     }
 
     auto header = (MIDIBlockHeader*)m_loader.get_midi(sound.MIDIID);
-    m_handlers.emplace_front(std::make_unique<midi_handler>(header, m_synth, (sound.Vol * vol) >> 10, lpan, sound.Repeats, sound.VolGroup, m_loader));
+    return m_handlers.emplace(std::make_unique<midi_handler>(header, m_synth, (sound.Vol * vol) >> 10, lpan, sound.Repeats, sound.VolGroup, m_loader));
 }
 
-void player::play_ame(MIDISound& sound, s32 vol, s32 pan)
+u32 player::play_ame(MIDISound& sound, s32 vol, s32 pan)
 {
     s32 lpan = pan;
     if (pan == -1 || pan == -2) {
@@ -104,10 +104,10 @@ void player::play_ame(MIDISound& sound, s32 vol, s32 pan)
     }
 
     auto header = (MultiMIDIBlockHeader*)m_loader.get_midi(sound.MIDIID);
-    m_handlers.emplace_front(std::make_unique<ame_handler>(header, m_synth, (sound.Vol * vol) >> 10, lpan, sound.Repeats, sound.VolGroup, m_loader));
+    return m_handlers.emplace(std::make_unique<ame_handler>(header, m_synth, (sound.Vol * vol) >> 10, lpan, sound.Repeats, sound.VolGroup, m_loader));
 }
 
-void player::play_sound(u32 bank_id, u32 sound_id)
+u32 player::play_sound(u32 bank_id, u32 sound_id)
 {
     std::scoped_lock lock(m_ticklock);
     try {
@@ -118,10 +118,10 @@ void player::play_sound(u32 bank_id, u32 sound_id)
 
         switch (sound.Type) {
         case 4: { // normal MIDI
-            play_midi(sound, 0x400, 0);
+            return play_midi(sound, 0x400, 0);
         } break;
         case 5: { // AME
-            play_ame(sound, 0x400, 0);
+            return play_ame(sound, 0x400, 0);
         } break;
         default:
             fmt::print("Unhandled sound type {}\n", sound.Type);
@@ -130,7 +130,7 @@ void player::play_sound(u32 bank_id, u32 sound_id)
     } catch (std::out_of_range& e) {
         fmt::print("play_sound: requested bank or sound not found\n");
         m_ticklock.unlock();
-        return;
+        return 0;
     }
 }
 

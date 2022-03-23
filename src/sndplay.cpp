@@ -9,7 +9,8 @@ int main(int argc, char* argv[])
 
     if (argc > 1) {
         bankid = player.load_bank(file, 0);
-        player.play_sound(bankid, 0);
+        unsigned sound = player.play_sound(bankid, 0);
+        fmt::print("sound {} started\n", sound);
     }
 
     while (true) {

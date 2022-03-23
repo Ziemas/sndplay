@@ -9,7 +9,7 @@
 #include "synth.h"
 #include "types.h"
 #include <filesystem>
-#include <forward_list>
+#include <unordered_map>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -29,15 +29,16 @@ public:
 
     u32 load_bank(std::filesystem::path& path, size_t offset);
 
-    void play_sound(u32 bank, u32 sound);
+    u32 play_sound(u32 bank, u32 sound);
     void set_midi_reg(u8 reg, u8 value);
 
 private:
     std::recursive_mutex m_ticklock; // TODO does not need to recursive with some light restructuring
-    std::forward_list<std::unique_ptr<sound_handler>> m_handlers;
+    //std::unordered_map<u32, std::unique_ptr<sound_handler>> m_handlers;
+    handler_map<std::unique_ptr<sound_handler>> m_handlers;
 
-    void play_midi(MIDISound& sound, s32 vol, s32 pan);
-    void play_ame(MIDISound& sound, s32 vol, s32 pan);
+    u32 play_midi(MIDISound& sound, s32 vol, s32 pan);
+    u32 play_ame(MIDISound& sound, s32 vol, s32 pan);
     void tick(s16_output* stream, int samples);
 
     loader m_loader;

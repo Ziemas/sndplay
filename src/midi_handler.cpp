@@ -63,7 +63,7 @@ void midi_handler::note_on()
         return;
     }
 
-    fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
+    //fmt::print("{:x} {}: [ch{:01x}] note on {:02x} {:02x}\n", (u64)this, m_time, channel, note, velocity);
 
     // Key on all the applicable tones for the program
     auto& bank = m_locator.get_bank(m_header->BankID);
